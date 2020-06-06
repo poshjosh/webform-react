@@ -38178,24 +38178,9 @@ var App = /*#__PURE__*/function (_React$Component) {
         exact: true,
         path: "/"
       }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(Home, null)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__["Route"], {
-        path: "/create/blog"
-      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_form__WEBPACK_IMPORTED_MODULE_3__["default"], {
-        basepath: "/forms",
-        action: "create",
-        modelname: "blog"
-      })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__["Route"], {
-        path: "/create/post"
-      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_form__WEBPACK_IMPORTED_MODULE_3__["default"], {
-        basepath: "/forms",
-        action: "create",
-        modelname: "post"
-      })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__["Route"], {
-        path: "/create/tag"
-      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_form__WEBPACK_IMPORTED_MODULE_3__["default"], {
-        basepath: "/forms",
-        action: "create",
-        modelname: "tag"
-      })))));
+        path: "/:action/:modelname",
+        children: /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(Child, null)
+      }))));
     }
   }]);
 
@@ -38214,6 +38199,18 @@ function Home() {
   }, "Create Post")), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("li", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(react_router_dom__WEBPACK_IMPORTED_MODULE_1__["Link"], {
     to: "/create/tag"
   }, "Create Tag"))));
+}
+
+function Child() {
+  var _useParams = Object(react_router_dom__WEBPACK_IMPORTED_MODULE_1__["useParams"])(),
+      action = _useParams.action,
+      modelname = _useParams.modelname;
+
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_form__WEBPACK_IMPORTED_MODULE_3__["default"], {
+    basepath: "/forms",
+    action: action,
+    modelname: modelname
+  });
 }
 
 react_dom__WEBPACK_IMPORTED_MODULE_2___default.a.render( /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(App, null), document.getElementById('react'));
@@ -39411,9 +39408,11 @@ var TextAreaField = /*#__PURE__*/function (_React$Component6) {
       var _this5 = this;
 
       var className = WebformInputClass.FORM_TEXTAREA;
+      var numLines = this.props.formMember.numberOfLines;
+      var rowCount = numLines > 5 ? 5 : numLines;
       return /*#__PURE__*/React.createElement("textarea", {
         className: className + ' ' + this.props.formMember.type,
-        rows: this.props.formMember.numberOfLines,
+        rows: rowCount,
         disabled: this.props.disabled,
         required: this.props.formMember.required,
         form: this.props.form.id,
