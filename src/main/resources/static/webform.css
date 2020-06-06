@@ -1,0 +1,112 @@
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body{ font-size:1.25rem; color:#012345; }
+
+a{ text-decoration:none; }
+
+.message-group{ margin-bottom: 0.75rem; }
+.error-message{ color:red; }
+.info-message{ color:green; }
+
+form {
+    background-color: #ddeeff;
+    min-width: 10rem;
+    max-width: 40rem;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.form-row{ width: 100%; text-align: left; margin-bottom: 1.0rem; }
+
+/** text, number, password, file, checkbox, radio, datetime-local, date, time, hidden */
+.form-input { width: 100%; height :2rem; text-align: left; }
+.checkbox { width: 2rem; height: 2rem; text-align: left; }
+.form-select { width: 100%; height: 2rem; text-align: left; }
+.form-textarea { width: 100%; text-align: left; }
+
+.formFieldMessage{
+    font-size:1.0rem;
+    font-family: monospace;
+}
+
+.nowrap{ white-space:nowrap; }
+.bold{ font-weight:bold; }
+.red{ color:red; }
+.heavy-max{ font-weight:900; }
+
+
+.button {
+    font-size:1.25em;
+    border: 1px solid transparent;
+    outline: none;
+    line-height: 100%;
+    white-space: nowrap;
+    vertical-align: middle;
+/**    padding: 0.6rem 1rem; */
+    padding: 0.3rem 0.5rem;
+    border-radius: 2px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    min-height: 38px;
+}
+
+.primary-button {
+    background-color: #128ff2;
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.12);
+    color: #fff;
+    display: block;
+/**    margin-top: 15px; */
+    min-width: 100px;
+}
+
+@media screen and (min-width: 500px) {
+    .primary-button {
+        background-color: #128ff2;
+        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.12);
+        color: #fff;
+        display: inline-block;
+        margin-top: 0;
+        margin-left: 10px;
+    }
+}
+
+/** FROM HERE BEING DECOMMISSSION */
+
+/**
+form .table{ width:100%; background-color:#ddeeff; }
+form .form-row{ width:100%; }
+form .form-col{ width:50%; padding-bottom:0.5em; display:block; text-align:left; }
+*/
+
+.content-box-heading{ background-color:#ddfffd; border:1px solid gray; margin:0.25rem; padding:0.5rem; }
+.content-box{ border:1px solid gray; margin:0.25rem; padding:0.5rem; }
+
+
+.face-0{ background-color:navy; color:white; padding:0.5em; }
+.face-0 a{  text-decoration:none; color:white; }
+
+.navbar{ width:100%; }
+
+.breadcrumb{ width:100%; padding:0.5em; font-size:0.75em; border:1px solid #abcdef; }
+.breadcrumb .breadcrumb-item{}
+
+.container{}
+
+.content .content-table{ width:100%; }
+.content .content-row{ width:100%; }
+.content .content-row .content-col-0{ width:20%; vertical-align:top; }
+.content .content-row .content-col-1{ width:80%; vertical-align:top; padding:0.5em; text-align:justify; }
+
+/** 3 color getting lighter #407966  #95cebb  #c8ffee */
+.sidebar{ border:1px solid #abcdef; }
+.sidebar .sidebar-heading{ text-align:center; }
+.sidebar .sidebar-body{ }
+.sidebar .sidebar-item{ padding:0.25em 0.5em 0.25em 0.5em; }
+
+.searchresults { width:100%; }
+.searchresults .searchresults-row{ width:100%; }
+
