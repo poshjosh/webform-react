@@ -178,9 +178,11 @@ class TextAreaField extends React.Component{
      */
     render() {
         const className = WebformInputClass.FORM_TEXTAREA;
+        const numLines = this.props.formMember.numberOfLines;
+        const rowCount = numLines > 5 ? 5 : numLines;
         return (
             <textarea className={className + ' ' + this.props.formMember.type} 
-                rows={this.props.formMember.numberOfLines}
+                rows={rowCount}
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
                 form={this.props.form.id}
