@@ -2,10 +2,7 @@
 
 import React from "react";
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Link
+  BrowserRouter as Router, Switch, Route, Link, useParams
 } from "react-router-dom";
 
 import ReactDOM from "react-dom";
@@ -27,24 +24,16 @@ import Form from "./form";
 class App extends React.Component {
     render() {
         return (
-          <Router>
-            <div>
-              <Switch>
-                <Route exact path="/">
-                  <Home />
-                </Route>
-                <Route path="/create/blog">
-                  <Form basepath="/forms" action="create" modelname="blog"/>
-                </Route>
-                <Route path="/create/post">
-                  <Form basepath="/forms" action="create" modelname="post"/>
-                </Route>
-                <Route path="/create/tag">
-                  <Form basepath="/forms" action="create" modelname="tag"/>
-                </Route>
-              </Switch>
-            </div>
-          </Router>
+            <Router>
+                <div>
+                    <Switch>
+                        <Route exact path="/">
+                            <Home/>
+                        </Route>
+                        <Route path="/:action/:modelname" children={<Child/>}/>
+                    </Switch>
+                </div>
+            </Router>
         );
     }
 };
@@ -78,6 +67,13 @@ function Home() {
             </ul>
         </div>
     );
+}
+
+function Child() {
+
+    let { action, modelname } = useParams();
+
+    return (<Form basepath="/forms" action={action} modelname={modelname}/>);
 }
 
 ReactDOM.render(
