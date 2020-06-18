@@ -15,8 +15,8 @@
  */
 package com.looseboxes.webform.react;
 
-import com.looseboxes.webform.react.controllers.FormControllerRestImpl;
-import com.looseboxes.webform.react.controllers.IndexController;
+import com.looseboxes.webform.react.controllers.WebformControllerRest;
+import com.looseboxes.webform.react.controllers.WebformController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import static org.assertj.core.api.Assertions.*;
@@ -32,9 +32,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 public class ControllersSmokeIT {
 
-    @Autowired private FormControllerRestImpl formController;
+    @Autowired private WebformControllerRest formController;
     
-    @Autowired private IndexController indexController;
+    @Autowired private WebformController indexController;
 
     @Test
     public void application_WhenRun_ShouldLoadFormController() throws Exception {

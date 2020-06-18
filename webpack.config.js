@@ -12,7 +12,7 @@ module.exports = {
     },    
     output: {
         path: __dirname,
-        filename: './src/main/resources/static/bundle.js'
+        filename: './src/main/resources/static/webform.js'
     },
     module: {
         rules: [

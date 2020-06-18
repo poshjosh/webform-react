@@ -1,6 +1,7 @@
-const React = require('react');
-const log = require('./log');
+'use strict';
 
+import React from 'react';
+import log from "./log";
 
 const WebformInputClass = {
     FORM_INPUT: "form-input",
@@ -16,7 +17,7 @@ class InputField extends React.Component{
                 type={this.props.formMember.type}
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
-                form={this.props.form.id}
+                form={this.props.formid}
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
@@ -33,47 +34,56 @@ class InputField extends React.Component{
 };
 
 class SelectField extends React.Component{
+    
+    listItemAt(index) {
+        
+        const choices = this.props.formMember.choices;
+        
+        const val = choices[index];
+            
+        const selected = index === this.props.value || val === this.props.value;
+
+        log.trace(() => "SelectField#listItemAt. " + 
+                index + " = " + val + ", selected: " + selected);
+
+//Warning: Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>.
+//            selected={selected}
+        const htm = <option 
+            key={index}
+            disabled={this.props.disabled}
+            name={this.props.formMember.name}
+            value={index}>
+            {val}
+        </option>;
+
+        log.trace("SelectField#listItemAt. ", htm);        
+
+        return htm;
+    }
+    
     render() {
         
         const choices = this.props.formMember.choices;
+        
+        const itemCount = Object.keys(choices).length;
 
         log.trace("SelectField#render. Choices: ", choices);
-
-        const options = [];
+        log.debug("SelectField#render. Choices: ", itemCount);
         
-        for(const key in choices) {
-            
-            const val = choices[key];
-            
-            log.trace(() => "SelectField#render. " + key + " = " + val);
-            
-            const selected = key === this.props.value || val === this.props.value;
-            
-            if(selected === true) {
-                log.trace(() => "SelectField#render. Selected: " + key + " = " + val);
-            }
-            
-            const htm = <SelectOption 
-                    key={key}
-                    form={this.props.form} 
-                    formMember={this.props.formMember} 
-                    value={key}
-                    label={val}
-                    selected={selected}
-                    disabled={this.props.disabled}/>;
-                    
-            log.trace("SelectField#render. ", htm);        
-                            
+        const options = [];
+        for(const index in choices) {
+            const htm = this.listItemAt(index);
             options.push(htm);                 
         }
         
         const className = WebformInputClass.FORM_SELECT;
 
         return (
-            <select className={className + ' ' + this.props.formMember.type} 
+            <select 
+                className={className + ' ' + this.props.formMember.type} 
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
-                form={this.props.form.id}
+                form={this.props.formid}
                 name={this.props.formMember.name}
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
@@ -92,32 +102,6 @@ class SelectField extends React.Component{
     }
 };
 
-class SelectOption extends React.Component{
-    render() {
-        let htm;
-        if(this.props.selected === true) {
-            htm = (
-                <option selected
-                    disabled={this.props.disabled} 
-                    name={this.props.formMember.name}
-                    value={this.props.value}>
-                    {this.props.label}
-                </option>    
-            );
-        }else{
-            htm = (
-                <option 
-                    disabled={this.props.disabled} 
-                    name={this.props.formMember.name}
-                    value={this.props.value}>
-                    {this.props.label}
-                </option>    
-            );
-        }
-        return (htm);
-    }
-};
-
 class CheckBoxField extends React.Component{
     /**
      * We do not set checked manually as this our fields are controlled
@@ -130,11 +114,11 @@ class CheckBoxField extends React.Component{
                 type={this.props.formMember.type}
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
-                form={this.props.form.id}
+                form={this.props.formid}
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
-                checked={this.props.value}
+                checked={this.props.value === true || this.props.value === 'true'}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}
@@ -155,7 +139,7 @@ class FileField extends React.Component{
                 type={this.props.disabled ? 'text' : 'file'}
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
-                form={this.props.form.id}
+                form={this.props.formid}
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
@@ -185,7 +169,7 @@ class TextAreaField extends React.Component{
                 rows={rowCount}
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
-                form={this.props.form.id}
+                form={this.props.formid}
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
@@ -199,13 +183,12 @@ class TextAreaField extends React.Component{
     }
 };
 
-module.exports = {
+export {
     InputField,
     SelectField,
-    SelectOption,
     CheckBoxField,
     FileField,
     TextAreaField
-};
+}
 
 

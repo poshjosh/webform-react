@@ -13,12 +13,12 @@ import org.springframework.context.annotation.Bean;
 })
 public class WebformApplication {
     
-	public static void main(String[] args) {
-		SpringApplication.run(WebformApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(WebformApplication.class, args);
+    }
 
-	@Bean
-	public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
-		return new PrintAppInfo(ctx);
-	}
+    @Bean
+    public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
+        return new PrintAppInfo(ctx);
+    }
 }

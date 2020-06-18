@@ -1,20 +1,58 @@
-const log = require('./log');
+'use strict';
+
+import log from "./log";
 
 const formUtil = {
 
     buildTargetPath: function(props, suffix) {
-        var target = props.basepath + '/' + props.action + '/' + props.modelname;
+        var target = props.basepath + '/api/' + props.action + '/' + props.modelname;
         if(suffix) {
             target = target + '/' + suffix;
         }
         return target;
     },
 
+    updateMultiChoice(formConfig, formMember, choiceMappings) {
+        
+        log.trace(() => "Updating Form." + formMember.name + 
+                " with: " + JSON.stringify(choiceMappings));
+        
+        // FormMember format 
+        // {"id":"country","name":"country","label":"Country","advice":null,
+        //  "value":null,"choices":{"0":"NIGERIA"},"maxLength":-1,"size":35,
+        //  "numberOfLines":1,"type":"text","referencedFormHref":null,
+        //  "referencedForm":null,"optional":false,"multiChoice":true,
+        //  "multiple":false,"displayName":"Country","required":true,
+        //  "anyFieldSet":true,"formReference":false}
+        const formMembersUpdate = formConfig.form.members.map((member, index) => {
+            for(const key in choiceMappings) {
+                const memberName = member['name'];
+                if(memberName === key) {
+                    const choices = choiceMappings[key];
+                    log.debug(() => "Updating FormMember: " + memberName + 
+                            " with choices: " + JSON.stringify(choices));
+                    member.multiChoice = true;
+                    member.choices = choices;
+                    log.trace("FormMember Update: ", member);
+                }
+            }
+            return member;
+        });
+
+        log.trace("FormMembers update: ", formMembersUpdate);
+        
+        const formUpdate = Object.assign({}, formConfig.form);
+        formUpdate.members = formMembersUpdate;
+        const formConfigUpdate = Object.assign({}, formConfig);
+        formConfigUpdate.form = formUpdate;
+        
+        return formConfigUpdate;
+    },
+
     /**
      * Update the first argument with values from the second.
-     * Does some recursive updates for objects. Currently goes only one (1) 
-     * Does not handle arrays etc
-     * level deep.
+     * Does one level of recursive update for objects. 
+     * Does not support arrays.
      * @param {type} current
      * @param {type} update
      * @returns The first argument updated with values from the second argument.
@@ -26,16 +64,18 @@ const formUtil = {
         for(const name in update) {
 
             var value = current[name];
-
+            const valueUpdate = update[name];
+            
             let updatedValue;
 
-            if(typeof(value) === 'object') {
-                if( ! value) {
-                    value = {};
+            if(valueUpdate) {
+                const type = typeof(valueUpdate);
+                if(type === 'object') {
+                    const temp = value ? Object.assign({}, value) : {};
+                    updatedValue = Object.assign(temp, valueUpdate);
+                }else{
+                    updatedValue = valueUpdate;
                 }
-                updatedValue = Object.assign(Object.assign({}, value), update[name]);
-            }else{
-                updatedValue = update[name];
             }
             
             const logLevel = "trace";//name === "formConfig" ? "trace" : "debug";
@@ -118,4 +158,4 @@ const formUtil = {
     }
 };
 
-module.exports = formUtil;
+export default formUtil;

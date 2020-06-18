@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org">
+    <head lang="en">
+        <title>WebForm + React - Demo Application</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="/webform.css"/>
+    </head>
+    <body>
+        <h3>Webform + React - Demo Application</h3>
+        
+        <th:block th:if="${basepath != null && action != null && modelname != null}">
+            <div th:id="webform" 
+                 data-th-attr="data-basepath=${basepath}, data-action=${action}, data-modelname=${modelname}"/>
+        </th:block>
+        <th:block th:unless="${basepath != null && action != null && modelname != null}">
+            <p>
+                This application demonstrates the versatility of Webforms
+                with a React based front end. Using Webforms, forms are
+                automatically generated for your web application based on
+                annotations defined on your domain objects.
+            </p>
+            Some annotations used are those in the:
+            <ul>
+                <li>
+                    <tt>javax.validation.constraints</tt> package for example: 
+                    <tt>javax.validation.constraints.NotNull</tt> will make a field
+                    <tt>required</tt>
+                </li>
+                <li>
+                    <tt>javax.persistence</tt> package for example:
+                    <tt>@javax.persistence.Column(nullable = false)</tt> will make
+                    a field <tt>optional</tt>
+                </li>
+            </ul>
+            <p>There are four (4) CRUD actions supported by Webform</p>
+            <ul>
+                <li><b>Create</b> with endpoint <tt>/create</tt></li>
+                <li><b>Read</b> with endpoint <tt>/read</tt></li>
+                <li><b>Update</b> with endpoint <tt>/update</tt></li>
+                <li><b>Delete</b> with endpoint <tt>/delete</tt></li>
+            </ul>
+            <p>
+                To create a model object named <tt>Employee</tt> you enter:
+                <tt>/create/employee</tt> and Webform automatically generates 
+                a form for the CRUD action you requested (<tt>create</tt>) based 
+                on annotations you defined on the Employee DTO.
+            </p>
+            This sample application has 3 models:
+            <ul>
+                <li>Blog</li>
+                <li>Post</li>
+                <li>Tag</li>
+            </ul>
+
+            Start by creating a blog with <a href="/webform/create/blog">this link</a>
+        </th:block>
+        
+        <script type="text/javascript" src="/webform.js"></script>
+
+    </body>
+</html>

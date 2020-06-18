@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Scope;
  * @author hp
  */
 @Configuration
-public class JpaConfigurationImpl extends JpaConfiguration{
+public class WebformJpaConfiguration extends JpaConfiguration{
     
     @Autowired private EntityManagerFactory entityMangerFactory;
 

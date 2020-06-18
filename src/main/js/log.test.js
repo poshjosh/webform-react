@@ -1,5 +1,5 @@
-var assert = require('assert');
-var log = require('./log');
+import assert from "assert";
+import log from "./log";
 
 describe('toMessage Test', function() {
     

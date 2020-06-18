@@ -1,15 +1,14 @@
 'use strict';
 
-const React = require('react');
-const ReactDOM = require('react-dom');
-const client = require('./client');
+import React from "react";
+import ReactDOM from "react-dom";
+import client from "./client";
 
-const {
-    InputField, SelectField, SelectOption, CheckBoxField, FileField, TextAreaField
-} = require('./formFields');
-const formUtil = require('./formUtil');
-const log = require('./log');
-
+import {
+    InputField, SelectField, CheckBoxField, FileField, TextAreaField
+} from "./formFields";
+import formUtil from "./formUtil";
+import log from "./log";
 log.init({logLevel: 'debug'});
 
 /**
@@ -314,14 +313,6 @@ class Form extends React.Component {
             return;
         }
         
-        //@TODO 
-        // Remove this abrupt truncation via the return statement
-        // Handle async validation via 'validateSingle' api call.
-        // Handle async loading of the 'dependents' via dependents api call.
-        if(true) {
-            return;
-        }
-
         // Other events e.g onClick, onBlur are only sent if we are at first stage
         const firstStage = WebformStage.isFirst(this.state.context.stage);
         if(firstStage !== true) {
@@ -333,8 +324,20 @@ class Form extends React.Component {
         client(clientConfig).done(response => {
             
             formUtil.logResponse(response, eventName);
+            
+            if("onClick" === eventName) {
+                
+                const choices = response.entity;
+                
+                const formConfig = formUtil.updateMultiChoice(
+                        this.state.formConfig, formMember, choices);
+                
+                this.updateFormConfig(formConfig);
+                
+            }else{
     
-            this.printMessages(response);
+                this.printMessages(response);
+            }
             
         }, response => {
             
@@ -345,13 +348,49 @@ class Form extends React.Component {
     onChange(formMember, event) {
         this.handleEvent(event, "onChange", formMember);
     }
+    
+    hasChoices(event, formMember) {
+        const formMembers = this.state.formConfig.form.members;
+        var hasChoices = false;
+        for (var index = 0; index < formMembers.length; index++) {
+            if(formMember.name === formMember.name && formMember.choices) {
+                hasChoices = true;
+                break;
+            }
+        }        
+        return hasChoices;
+    }
+
+    isOnClickAccepted(event, formMember) {
+        // Default select has value Select [name] ... Value is of type String
+        // Other selections each have value of type number
+        //
+        let accepted;
+        const targetValue = event.target.value;
+        if(formMember.multiChoice && targetValue) {
+            const value = parseInt(targetValue, 10);
+            accepted = ! isNaN(value);
+        }else{
+            accepted = false;
+        }
+        
+        if(accepted) {
+            accepted = this.hasChoices(event, formMember);
+        }
+        
+        log.trace("Form#isOnClickAccepted. Accepted: " + 
+                accepted + ", FormMember: " + formMember.name);
+        return accepted;
+    }
 
     onClick(formMember, event) {
-        this.handleEvent(event, "onClick", formMember);
+        if(this.isOnClickAccepted(event, formMember)) {
+            this.handleEvent(event, "onClick", formMember);
+        }
     }
     
     onBlur(formMember, event) {
-        this.handleEvent(event, "onBlur", formMember);
+//        this.handleEvent(event, "onBlur", formMember);
     }
 
     nextStage() {
@@ -464,7 +503,8 @@ class Form extends React.Component {
                 <h3>{this.getFormHeading()}</h3>
                 <FormMessages id="errors" ref="errors" className="error-message" messages={this.state.messages.errors}/>
                 <FormMessages id="infos" ref="infos" className="info-message" messages={this.state.messages.infos}/>
-                <FormRows form={form} 
+                <FormRows basepath={this.props.basepath}
+                          form={form} 
                           values={this.state.values} 
                           disabled={this.isFormDisabled()} 
                           onChange={this.onChange}
@@ -505,17 +545,21 @@ class FormRows extends React.Component{
         return ! this.props.values ? '' : 
                ! this.props.values[name] ? '' : this.props.values[name];
     }
+    
     render() {
-        const formRows = this.props.form.nonHiddenMembers.map(formMember =>
-            <FormRow key={formMember.id + '-row'} 
-                     ref={formMember.id + '-row'}   
-                     form={this.props.form} 
-                     formMember={formMember} 
-                     value={this.getValue(formMember.name)}
-                     disabled={this.props.disabled}
-                     onChange={this.props.onChange}
-                     onClick={this.props.onClick}
-                     onBlur={this.props.onBlur}/>
+        const formRows = this.props.form.members
+            .filter((formMember) => formMember.type !== 'hidden')
+            .map(formMember =>
+                <FormRow basepath={this.props.basepath}
+                         key={formMember.id + '-row'} 
+                         ref={formMember.id + '-row'}   
+                         form={this.props.form} 
+                         formMember={formMember} 
+                         value={this.getValue(formMember.name)}
+                         disabled={this.props.disabled}
+                         onChange={this.props.onChange}
+                         onClick={this.props.onClick}
+                         onBlur={this.props.onBlur}/>
         );
         
         return (formRows);
@@ -523,14 +567,53 @@ class FormRows extends React.Component{
 };
 
 class FormRow extends React.Component{
+    
+    constructor(props) {
+        super(props);
+        log.trace("FormRow#<init>. Props: ", this.props);
+        this.state = {multiChoice : this.isMultiChoice()};
+    }
+    
+    isMultiChoice() {
+        const multiChoice = this.props.formMember.multiChoice;
+        return multiChoice === true || multiChoice === 'true';
+    }
+    
+    /**
+     * FormMember.multiChoice is updated from <code>false</code> to <code>true</code>
+     * after the multi-choice of a dependent formMember are newly loaded from 
+     * the API. This is the case for so-called dependent componetns. For example
+     * Selecting a country provides a context for populating the region options.
+     * We thus say the region option is dependent on the country option.
+     * @returns {Boolean}
+     */
+    isMultiChoicePropertyUpdated() {
+        return ! this.state.multiChoice && this.isMultiChoice();
+    }
+    
+    shouldComponentUpdate() {
+        if(this.isMultiChoicePropertyUpdated()) {
+            return true;
+        }
+        // This is the default return value
+        return true;
+    }
+    
     render() {
+
+        const multiChoice = this.isMultiChoice();
+        const choices = this.props.formMember.choices;
         
-        log.trace("FormRow#render. Value: ", this.props.value);
+        log.debug("FormRow#render. Type: " + this.props.formMember.type + 
+                ", MultiChoice: " + multiChoice +
+                ", Name: " + this.props.formMember.name + 
+                ", Value: ", this.props.value + ", choices: " +
+                (choices ? Object.keys(choices).length : null));
         
         let formField;
         
-        if(this.props.formMember.multiChoice) {
-            formField = (<SelectField form={this.props.form}
+        if(multiChoice) {
+            formField = (<SelectField formid={this.props.form.id}
                                       formMember={this.props.formMember}
                                       value={this.props.value}
                                       disabled={this.props.disabled}
@@ -538,7 +621,7 @@ class FormRow extends React.Component{
                                       onClick={this.props.onClick}
                                       onBlur={this.props.onBlur}/>);
         }else if(this.props.formMember.type === 'checkbox') {
-            formField = (<CheckBoxField form={this.props.form}
+            formField = (<CheckBoxField formid={this.props.form.id}
                                       formMember={this.props.formMember}
                                       value={this.props.value}
                                       disabled={this.props.disabled}
@@ -546,7 +629,7 @@ class FormRow extends React.Component{
                                       onClick={this.props.onClick}
                                       onBlur={this.props.onBlur}/>);
         }else if(this.props.formMember.type === 'file') {
-            formField = (<FileField form={this.props.form}
+            formField = (<FileField formid={this.props.form.id}
                                       formMember={this.props.formMember}
                                       value={this.props.value}
                                       disabled={this.props.disabled}
@@ -555,7 +638,7 @@ class FormRow extends React.Component{
                                       onBlur={this.props.onBlur}/>);
         }else{
             if(this.props.formMember.numberOfLines < 2) {
-                formField = (<InputField form={this.props.form}
+                formField = (<InputField formid={this.props.form.id}
                                           formMember={this.props.formMember}
                                           value={this.props.value}
                                           disabled={this.props.disabled}
@@ -563,7 +646,7 @@ class FormRow extends React.Component{
                                           onClick={this.props.onClick}
                                           onBlur={this.props.onBlur}/>);
             }else{
-                formField = (<TextAreaField form={this.props.form}
+                formField = (<TextAreaField formid={this.props.form.id}
                                           formMember={this.props.formMember}
                                           value={this.props.value}
                                           disabled={this.props.disabled}
@@ -575,10 +658,10 @@ class FormRow extends React.Component{
         
         const refFormHref = this.props.formMember.referencedFormHref;
         const refName = this.props.formMember.label;
-        const multiChoice = this.props.formMember.multichoice;
         const msgPrefix = multiChoice === true ? 
-                "Select " + refName + " or " :
-                refName + " is required. ";
+                "Select " + refName + " or " : 
+                this.props.formMember.required ?
+                refName + " is required. " : "";
         const refFormMsg = refFormHref !== null ? "Create one" : "";
         const displayMember = refFormHref === null ? true : multiChoice;
         
@@ -591,9 +674,9 @@ class FormRow extends React.Component{
                 {displayMember && formField}
                 
                 {(refFormHref !== null) && (
-                        <span>{msgPrefix}
-                            <a href={refFormHref} target="_blank">{refFormMsg}</a>
-                        </span>
+                        <tt>{msgPrefix}
+                            <a href={this.props.basepath + refFormHref} target="_blank">{refFormMsg}</a>
+                        </tt>
                     )
                 }
             </div>    

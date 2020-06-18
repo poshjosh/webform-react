@@ -9,10 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
  * @author hp
  */
 @RestController 
-@RequestMapping(path = "/forms", 
+@RequestMapping(path = WebformConstants.ENDPOINT_API, 
         produces = MediaType.APPLICATION_JSON_VALUE)
-//        method = {RequestMethod.GET, RequestMethod.PUT, RequestMethod.POST})
-public class FormControllerRestImpl extends FormControllerRest{
+public class WebformControllerRest extends FormControllerRest{
 
 }
 /**    
