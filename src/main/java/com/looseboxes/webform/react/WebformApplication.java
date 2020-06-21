@@ -1,6 +1,5 @@
 package com.looseboxes.webform.react;
 
-import com.looseboxes.webform.util.PrintAppInfo;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,6 +18,6 @@ public class WebformApplication {
 
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
-        return new PrintAppInfo(ctx);
+        return new SampleDataLoader(ctx);
     }
 }

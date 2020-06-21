@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/poshjosh/webform-react",
   "dependencies": {
+    "query-string": "^6.13.1",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
     "react-router-dom": "^5.2.0",

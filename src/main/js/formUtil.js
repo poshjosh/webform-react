@@ -1,15 +1,78 @@
 'use strict';
 
+import errors from "./errors";
 import log from "./log";
 
 const formUtil = {
 
-    buildTargetPath: function(props, suffix) {
-        var target = props.basepath + '/api/' + props.action + '/' + props.modelname;
+    getIdForSelectOptionAt: function(formMember, index) {
+        errors.requireValue("formMember", formMember);
+        errors.requireValue("index", index);
+        return formMember.id + '-' + index;
+    },
+    
+    getIdForDefaultSelectOption: function(formMember) {
+        errors.requireValue("formMember", formMember);
+        return formMember.id + '-no-selection';
+    },
+
+    buildTargetPathForModel: function(basepath, action, modelname, suffix) {
+        errors.requireValue("basepath", basepath);
+        errors.requireValue("action", action);
+        errors.requireValue("modelname", modelname);
+        var target = basepath + '/api/' + action + '/' + modelname;
         if(suffix) {
             target = target + '/' + suffix;
         }
         return target;
+    },
+    
+    buildTargetPath: function(props, formConfig, suffix) {
+        return formUtil.buildTargetPathForModel(
+                props.basepath, formConfig.action, formConfig.modelname, suffix);
+    },
+
+    /**
+     * Update the appropriate form member with the value gotten from the newly 
+     * created entity.
+     * 
+     * This method makes use of the {XMLHttpRequest.response.headers.Location}
+     * property to determine which form member to update and also the id of the
+     * newly created. The value of the form member selected for update is 
+     * set to the value of the id of the newly created entity.
+     * 
+     * @param {XMLHttpRequest.response} response
+     * @param {Form.formConfig} formConfig
+     * @returns {boolean} true if form was updated with newly created, otherwise false
+     */
+    addNewlyCreatedToForm: function(response, formConfig) {
+        var added = false;
+        log.trace("Form#addNewlyCreatedToForm ", response.entity);
+        if(response.entity && formConfig.form.members) {
+            //Format:  {"Location":"http://localhost:9010/read/blog/1"}
+            const loc = response.headers['Location'];
+            log.trace("Form#addNewlyCreatedToForm Response.headers.Location: ", loc);
+            if(loc) {
+                formConfig.form.members.forEach((formMember, index) => {
+                    var tgt = "/" + formMember.name + "/";
+                    var pos = loc.indexOf(tgt);
+                    if(pos === -1) {
+                        tgt = "/" + formMember.name.toLowerCase() + "/";
+                        pos = loc.indexOf(tgt);
+                    }
+                    if(pos !== -1) {
+                        const idString = loc.substring(pos + tgt.length, loc.length);
+                        const id = parseInt(idString, 10);
+                        formMember.value = id;
+                        added = true;
+                        log.debug(() => "Form#addNewlyCreatedToForm set " + 
+                                formConfig.form.name + "#" + formMember.name + 
+                                " = " + formMember.value);
+                    }
+                });
+            }
+        }
+        return added;
     },
 
     updateMultiChoice(formConfig, formMember, choiceMappings) {
@@ -29,7 +92,7 @@ const formUtil = {
                 const memberName = member['name'];
                 if(memberName === key) {
                     const choices = choiceMappings[key];
-                    log.debug(() => "Updating FormMember: " + memberName + 
+                    log.trace(() => "Updating FormMember: " + memberName + 
                             " with choices: " + JSON.stringify(choices));
                     member.multiChoice = true;
                     member.choices = choices;
@@ -99,25 +162,36 @@ const formUtil = {
      * @returns {undefined} Does not return anything
      */
     updateValue: function(name, target, source) {
-        if(source[name]) {
+        if(source[name] !== null && source[name] !== undefined) {
             target[name] = source[name];
         }
     },
     
-    collectConfigData: function(formConfig) {
-        
-        // buffer to collect form config data
-        const buffer = {};
+    collectFormData: function(formConfig, collectInto = {}) {
 
-        // collect special fields used by the api
-        formUtil.updateValue('parentfid', buffer, formConfig);
-        formUtil.updateValue('fid', buffer, formConfig);
-        formUtil.updateValue('mid', buffer, formConfig);
-        formUtil.updateValue('targetOnCompletion', buffer, formConfig);
-        formUtil.updateValue('modelfields', buffer, formConfig);
-        log.trace("formUtil#collectConfigData. ", buffer);
+        const formMembers = formConfig.form.members;
+
+        formMembers.forEach((formMember, index) => {
+            const value = formMember.value;
+            if(value !== null && value !== undefined) {
+                collectInto[formMember.name] = formMember.value;
+            }
+        });
         
-        return buffer;
+        return collectInto;
+    },
+    
+    collectConfigData: function(formConfig, collectInto = {}) {
+        
+        // collect special fields used by the api
+        formUtil.updateValue('parentfid', collectInto, formConfig);
+        formUtil.updateValue('fid', collectInto, formConfig);
+        formUtil.updateValue('mid', collectInto, formConfig);
+        formUtil.updateValue('targetOnCompletion', collectInto, formConfig);
+        formUtil.updateValue('modelfields', collectInto, formConfig);
+        log.trace("formUtil#collectConfigData. ", collectInto);
+        
+        return collectInto;
     },
     
     logFormConfig: function(formConfig, methodName, logLevel) {

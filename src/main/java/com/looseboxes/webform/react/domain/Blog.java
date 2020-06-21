@@ -1,6 +1,6 @@
 package com.looseboxes.webform.react.domain;
 
-import com.looseboxes.webform.react.domain.BlogType;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
@@ -8,9 +8,11 @@ import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -49,6 +51,10 @@ public class Blog implements Serializable {
     @Column(name = "type", nullable = false)
     private BlogType type;
 
+    @ManyToOne
+    @JsonIgnoreProperties("blogs")
+    private BlogSubtype subtype;
+    
     @Basic(optional = false)
     private boolean enabled;
     
@@ -61,7 +67,7 @@ public class Blog implements Serializable {
     @Temporal(TemporalType.TIMESTAMP)
     private Date timeCreated;
     
-    @OneToMany(mappedBy = "blog")
+    @OneToMany(fetch = FetchType.EAGER, mappedBy = "blog")
     private List<Post> postList;
 
     public Blog() { }
@@ -100,6 +106,14 @@ public class Blog implements Serializable {
 
     public void setType(BlogType type) {
         this.type = type;
+    }
+
+    public BlogSubtype getSubtype() {
+        return subtype;
+    }
+
+    public void setSubtype(BlogSubtype subtype) {
+        this.subtype = subtype;
     }
 
     public boolean isEnabled() {
@@ -157,6 +171,8 @@ public class Blog implements Serializable {
 
     @Override
     public String toString() {
-        return "com.looseboxes.webform.thym.domain.Blog[ id=" + id + " ]";
+        return "Blog{" + "id=" + id + ", handle=" + handle + 
+               ", description=" + description + ", type=" + type + ", subtype=" + subtype +
+                ", enabled=" + enabled + ", image=" + image + ", timeCreated=" + timeCreated + '}';
     }
 }

@@ -11,7 +11,7 @@
         
         <th:block th:if="${basepath != null && action != null && modelname != null}">
             <div th:id="webform" 
-                 data-th-attr="data-basepath=${basepath}, data-action=${action}, data-modelname=${modelname}"/>
+                 data-th-attr="data-basepath=${basepath}, data-action=${action}, data-modelname=${modelname}, data-asyncvalidation=true"/>
         </th:block>
         <th:block th:unless="${basepath != null && action != null && modelname != null}">
             <p>
@@ -46,14 +46,13 @@
                 a form for the CRUD action you requested (<tt>create</tt>) based 
                 on annotations you defined on the Employee DTO.
             </p>
-            This sample application has 3 models:
+            This sample application has 3 models, click any of the following 
+            links, to open a form for <b>Create</b>:
             <ul>
-                <li>Blog</li>
-                <li>Post</li>
-                <li>Tag</li>
+                <li><a href="/webform/create/blog">Blog</a></li>
+                <li><a href="/webform/create/post">Post</a></li>
+                <li><a href="/webform/create/tag">Tag</a></li>
             </ul>
-
-            Start by creating a blog with <a href="/webform/create/blog">this link</a>
         </th:block>
         
         <script type="text/javascript" src="/webform.js"></script>

@@ -86,6 +86,112 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./node_modules/decode-uri-component/index.js":
+/*!****************************************************!*\
+  !*** ./node_modules/decode-uri-component/index.js ***!
+  \****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var token = '%[a-f0-9]{2}';
+var singleMatcher = new RegExp(token, 'gi');
+var multiMatcher = new RegExp('(' + token + ')+', 'gi');
+
+function decodeComponents(components, split) {
+	try {
+		// Try to decode the entire string first
+		return decodeURIComponent(components.join(''));
+	} catch (err) {
+		// Do nothing
+	}
+
+	if (components.length === 1) {
+		return components;
+	}
+
+	split = split || 1;
+
+	// Split the array in 2 parts
+	var left = components.slice(0, split);
+	var right = components.slice(split);
+
+	return Array.prototype.concat.call([], decodeComponents(left), decodeComponents(right));
+}
+
+function decode(input) {
+	try {
+		return decodeURIComponent(input);
+	} catch (err) {
+		var tokens = input.match(singleMatcher);
+
+		for (var i = 1; i < tokens.length; i++) {
+			input = decodeComponents(tokens, i).join('');
+
+			tokens = input.match(singleMatcher);
+		}
+
+		return input;
+	}
+}
+
+function customDecodeURIComponent(input) {
+	// Keep track of all the replacements and prefill the map with the `BOM`
+	var replaceMap = {
+		'%FE%FF': '\uFFFD\uFFFD',
+		'%FF%FE': '\uFFFD\uFFFD'
+	};
+
+	var match = multiMatcher.exec(input);
+	while (match) {
+		try {
+			// Decode as big chunks as possible
+			replaceMap[match[0]] = decodeURIComponent(match[0]);
+		} catch (err) {
+			var result = decode(match[0]);
+
+			if (result !== match[0]) {
+				replaceMap[match[0]] = result;
+			}
+		}
+
+		match = multiMatcher.exec(input);
+	}
+
+	// Add `%C2` at the end of the map to make sure it does not replace the combinator before everything else
+	replaceMap['%C2'] = '\uFFFD';
+
+	var entries = Object.keys(replaceMap);
+
+	for (var i = 0; i < entries.length; i++) {
+		// Replace all decoded components
+		var key = entries[i];
+		input = input.replace(new RegExp(key, 'g'), replaceMap[key]);
+	}
+
+	return input;
+}
+
+module.exports = function (encodedURI) {
+	if (typeof encodedURI !== 'string') {
+		throw new TypeError('Expected `encodedURI` to be of type `string`, got `' + typeof encodedURI + '`');
+	}
+
+	try {
+		encodedURI = encodedURI.replace(/\+/g, ' ');
+
+		// Try the built in decoder first
+		return decodeURIComponent(encodedURI);
+	} catch (err) {
+		// Fallback to a more advanced decoder
+		return customDecodeURIComponent(encodedURI);
+	}
+};
+
+
+/***/ }),
+
 /***/ "./node_modules/object-assign/index.js":
 /*!*********************************************!*\
   !*** ./node_modules/object-assign/index.js ***!
@@ -517,6 +623,396 @@ module.exports = checkPropTypes;
 var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
 
 module.exports = ReactPropTypesSecret;
+
+
+/***/ }),
+
+/***/ "./node_modules/query-string/index.js":
+/*!********************************************!*\
+  !*** ./node_modules/query-string/index.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+const strictUriEncode = __webpack_require__(/*! strict-uri-encode */ "./node_modules/strict-uri-encode/index.js");
+const decodeComponent = __webpack_require__(/*! decode-uri-component */ "./node_modules/decode-uri-component/index.js");
+const splitOnFirst = __webpack_require__(/*! split-on-first */ "./node_modules/split-on-first/index.js");
+
+const isNullOrUndefined = value => value === null || value === undefined;
+
+function encoderForArrayFormat(options) {
+	switch (options.arrayFormat) {
+		case 'index':
+			return key => (result, value) => {
+				const index = result.length;
+
+				if (
+					value === undefined ||
+					(options.skipNull && value === null) ||
+					(options.skipEmptyString && value === '')
+				) {
+					return result;
+				}
+
+				if (value === null) {
+					return [...result, [encode(key, options), '[', index, ']'].join('')];
+				}
+
+				return [
+					...result,
+					[encode(key, options), '[', encode(index, options), ']=', encode(value, options)].join('')
+				];
+			};
+
+		case 'bracket':
+			return key => (result, value) => {
+				if (
+					value === undefined ||
+					(options.skipNull && value === null) ||
+					(options.skipEmptyString && value === '')
+				) {
+					return result;
+				}
+
+				if (value === null) {
+					return [...result, [encode(key, options), '[]'].join('')];
+				}
+
+				return [...result, [encode(key, options), '[]=', encode(value, options)].join('')];
+			};
+
+		case 'comma':
+		case 'separator':
+			return key => (result, value) => {
+				if (value === null || value === undefined || value.length === 0) {
+					return result;
+				}
+
+				if (result.length === 0) {
+					return [[encode(key, options), '=', encode(value, options)].join('')];
+				}
+
+				return [[result, encode(value, options)].join(options.arrayFormatSeparator)];
+			};
+
+		default:
+			return key => (result, value) => {
+				if (
+					value === undefined ||
+					(options.skipNull && value === null) ||
+					(options.skipEmptyString && value === '')
+				) {
+					return result;
+				}
+
+				if (value === null) {
+					return [...result, encode(key, options)];
+				}
+
+				return [...result, [encode(key, options), '=', encode(value, options)].join('')];
+			};
+	}
+}
+
+function parserForArrayFormat(options) {
+	let result;
+
+	switch (options.arrayFormat) {
+		case 'index':
+			return (key, value, accumulator) => {
+				result = /\[(\d*)\]$/.exec(key);
+
+				key = key.replace(/\[\d*\]$/, '');
+
+				if (!result) {
+					accumulator[key] = value;
+					return;
+				}
+
+				if (accumulator[key] === undefined) {
+					accumulator[key] = {};
+				}
+
+				accumulator[key][result[1]] = value;
+			};
+
+		case 'bracket':
+			return (key, value, accumulator) => {
+				result = /(\[\])$/.exec(key);
+				key = key.replace(/\[\]$/, '');
+
+				if (!result) {
+					accumulator[key] = value;
+					return;
+				}
+
+				if (accumulator[key] === undefined) {
+					accumulator[key] = [value];
+					return;
+				}
+
+				accumulator[key] = [].concat(accumulator[key], value);
+			};
+
+		case 'comma':
+		case 'separator':
+			return (key, value, accumulator) => {
+				const isArray = typeof value === 'string' && value.split('').indexOf(options.arrayFormatSeparator) > -1;
+				const newValue = isArray ? value.split(options.arrayFormatSeparator).map(item => decode(item, options)) : value === null ? value : decode(value, options);
+				accumulator[key] = newValue;
+			};
+
+		default:
+			return (key, value, accumulator) => {
+				if (accumulator[key] === undefined) {
+					accumulator[key] = value;
+					return;
+				}
+
+				accumulator[key] = [].concat(accumulator[key], value);
+			};
+	}
+}
+
+function validateArrayFormatSeparator(value) {
+	if (typeof value !== 'string' || value.length !== 1) {
+		throw new TypeError('arrayFormatSeparator must be single character string');
+	}
+}
+
+function encode(value, options) {
+	if (options.encode) {
+		return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
+	}
+
+	return value;
+}
+
+function decode(value, options) {
+	if (options.decode) {
+		return decodeComponent(value);
+	}
+
+	return value;
+}
+
+function keysSorter(input) {
+	if (Array.isArray(input)) {
+		return input.sort();
+	}
+
+	if (typeof input === 'object') {
+		return keysSorter(Object.keys(input))
+			.sort((a, b) => Number(a) - Number(b))
+			.map(key => input[key]);
+	}
+
+	return input;
+}
+
+function removeHash(input) {
+	const hashStart = input.indexOf('#');
+	if (hashStart !== -1) {
+		input = input.slice(0, hashStart);
+	}
+
+	return input;
+}
+
+function getHash(url) {
+	let hash = '';
+	const hashStart = url.indexOf('#');
+	if (hashStart !== -1) {
+		hash = url.slice(hashStart);
+	}
+
+	return hash;
+}
+
+function extract(input) {
+	input = removeHash(input);
+	const queryStart = input.indexOf('?');
+	if (queryStart === -1) {
+		return '';
+	}
+
+	return input.slice(queryStart + 1);
+}
+
+function parseValue(value, options) {
+	if (options.parseNumbers && !Number.isNaN(Number(value)) && (typeof value === 'string' && value.trim() !== '')) {
+		value = Number(value);
+	} else if (options.parseBooleans && value !== null && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
+		value = value.toLowerCase() === 'true';
+	}
+
+	return value;
+}
+
+function parse(input, options) {
+	options = Object.assign({
+		decode: true,
+		sort: true,
+		arrayFormat: 'none',
+		arrayFormatSeparator: ',',
+		parseNumbers: false,
+		parseBooleans: false
+	}, options);
+
+	validateArrayFormatSeparator(options.arrayFormatSeparator);
+
+	const formatter = parserForArrayFormat(options);
+
+	// Create an object with no prototype
+	const ret = Object.create(null);
+
+	if (typeof input !== 'string') {
+		return ret;
+	}
+
+	input = input.trim().replace(/^[?#&]/, '');
+
+	if (!input) {
+		return ret;
+	}
+
+	for (const param of input.split('&')) {
+		let [key, value] = splitOnFirst(options.decode ? param.replace(/\+/g, ' ') : param, '=');
+
+		// Missing `=` should be `null`:
+		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
+		value = value === undefined ? null : ['comma', 'separator'].includes(options.arrayFormat) ? value : decode(value, options);
+		formatter(decode(key, options), value, ret);
+	}
+
+	for (const key of Object.keys(ret)) {
+		const value = ret[key];
+		if (typeof value === 'object' && value !== null) {
+			for (const k of Object.keys(value)) {
+				value[k] = parseValue(value[k], options);
+			}
+		} else {
+			ret[key] = parseValue(value, options);
+		}
+	}
+
+	if (options.sort === false) {
+		return ret;
+	}
+
+	return (options.sort === true ? Object.keys(ret).sort() : Object.keys(ret).sort(options.sort)).reduce((result, key) => {
+		const value = ret[key];
+		if (Boolean(value) && typeof value === 'object' && !Array.isArray(value)) {
+			// Sort object keys, not values
+			result[key] = keysSorter(value);
+		} else {
+			result[key] = value;
+		}
+
+		return result;
+	}, Object.create(null));
+}
+
+exports.extract = extract;
+exports.parse = parse;
+
+exports.stringify = (object, options) => {
+	if (!object) {
+		return '';
+	}
+
+	options = Object.assign({
+		encode: true,
+		strict: true,
+		arrayFormat: 'none',
+		arrayFormatSeparator: ','
+	}, options);
+
+	validateArrayFormatSeparator(options.arrayFormatSeparator);
+
+	const shouldFilter = key => (
+		(options.skipNull && isNullOrUndefined(object[key])) ||
+		(options.skipEmptyString && object[key] === '')
+	);
+
+	const formatter = encoderForArrayFormat(options);
+
+	const objectCopy = {};
+
+	for (const key of Object.keys(object)) {
+		if (!shouldFilter(key)) {
+			objectCopy[key] = object[key];
+		}
+	}
+
+	const keys = Object.keys(objectCopy);
+
+	if (options.sort !== false) {
+		keys.sort(options.sort);
+	}
+
+	return keys.map(key => {
+		const value = object[key];
+
+		if (value === undefined) {
+			return '';
+		}
+
+		if (value === null) {
+			return encode(key, options);
+		}
+
+		if (Array.isArray(value)) {
+			return value
+				.reduce(formatter(key), [])
+				.join('&');
+		}
+
+		return encode(key, options) + '=' + encode(value, options);
+	}).filter(x => x.length > 0).join('&');
+};
+
+exports.parseUrl = (input, options) => {
+	options = Object.assign({
+		decode: true
+	}, options);
+
+	const [url, hash] = splitOnFirst(input, '#');
+
+	return Object.assign(
+		{
+			url: url.split('?')[0] || '',
+			query: parse(extract(input), options)
+		},
+		options && options.parseFragmentIdentifier && hash ? {fragmentIdentifier: decode(hash, options)} : {}
+	);
+};
+
+exports.stringifyUrl = (input, options) => {
+	options = Object.assign({
+		encode: true,
+		strict: true
+	}, options);
+
+	const url = removeHash(input.url).split('?')[0] || '';
+	const queryFromUrl = exports.extract(input.url);
+	const parsedQueryFromUrl = exports.parse(queryFromUrl, {sort: false});
+
+	const query = Object.assign(parsedQueryFromUrl, input.query);
+	let queryString = exports.stringify(query, options);
+	if (queryString) {
+		queryString = `?${queryString}`;
+	}
+
+	let hash = getHash(input.url);
+	if (input.fragmentIdentifier) {
+		hash = `#${encode(input.fragmentIdentifier, options)}`;
+	}
+
+	return `${url}${queryString}${hash}`;
+};
 
 
 /***/ }),
@@ -31448,6 +31944,54 @@ if (false) {} else {
 
 /***/ }),
 
+/***/ "./node_modules/split-on-first/index.js":
+/*!**********************************************!*\
+  !*** ./node_modules/split-on-first/index.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+module.exports = (string, separator) => {
+	if (!(typeof string === 'string' && typeof separator === 'string')) {
+		throw new TypeError('Expected the arguments to be of type `string`');
+	}
+
+	if (separator === '') {
+		return [string];
+	}
+
+	const separatorIndex = string.indexOf(separator);
+
+	if (separatorIndex === -1) {
+		return [string];
+	}
+
+	return [
+		string.slice(0, separatorIndex),
+		string.slice(separatorIndex + separator.length)
+	];
+};
+
+
+/***/ }),
+
+/***/ "./node_modules/strict-uri-encode/index.js":
+/*!*************************************************!*\
+  !*** ./node_modules/strict-uri-encode/index.js ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
+
+
+/***/ }),
+
 /***/ "./node_modules/webpack/buildin/amd-define.js":
 /*!***************************************!*\
   !*** (webpack)/buildin/amd-define.js ***!
@@ -34087,18 +34631,18 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-var webform = document.getElementById('webform');
-var webform_innerHtml;
+var node = document.getElementById('webform');
+var innerHtm;
 
-if (webform !== null && webform.dataset) {
-  webform_innerHtml = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_form__WEBPACK_IMPORTED_MODULE_2__["default"], webform.dataset);
+if (node !== null && node.dataset) {
+  innerHtm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_form__WEBPACK_IMPORTED_MODULE_2__["default"], node.dataset);
 } else {
-  webform_innerHtml = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
-    id: "formParametersNotSet"
+  innerHtm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
+    id: "webform-valid-node-not-found"
   });
 }
 
-react_dom__WEBPACK_IMPORTED_MODULE_1___default.a.render(webform_innerHtml, webform);
+react_dom__WEBPACK_IMPORTED_MODULE_1___default.a.render(innerHtm, node);
 
 /***/ }),
 
@@ -34137,6 +34681,37 @@ module.exports = rest.wrap(mime, {
 
 /***/ }),
 
+/***/ "./src/main/js/errors.js":
+/*!*******************************!*\
+  !*** ./src/main/js/errors.js ***!
+  \*******************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+
+var errors = {
+  requireValue: function requireValue(name, value) {
+    if (value === null || value === undefined) {
+      throw errors.notFound(name);
+    }
+
+    return value;
+  },
+  notFound: function notFound() {
+    var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : "property";
+    return {
+      name: "NotFound",
+      message: "Required " + name + " not found"
+    };
+  }
+};
+/* harmony default export */ __webpack_exports__["default"] = (errors);
+
+/***/ }),
+
 /***/ "./src/main/js/form.js":
 /*!*****************************!*\
   !*** ./src/main/js/form.js ***!
@@ -34146,9 +34721,26 @@ module.exports = rest.wrap(mime, {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
+/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var query_string__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! query-string */ "./node_modules/query-string/index.js");
+/* harmony import */ var query_string__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(query_string__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _client__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./client */ "./src/main/js/client.js");
+/* harmony import */ var _client__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_client__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _formFieldHeading__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./formFieldHeading */ "./src/main/js/formFieldHeading.js");
+/* harmony import */ var _formFields__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./formFields */ "./src/main/js/formFields.js");
+/* harmony import */ var _formUtil__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
+/* harmony import */ var _webformStage__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./webformStage */ "./src/main/js/webformStage.js");
+/* harmony import */ var _referencedFormConfig__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./referencedFormConfig */ "./src/main/js/referencedFormConfig.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_9__);
 
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _extends() { _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -34172,68 +34764,42 @@ function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Re
 
 function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
 
-var React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
-var ReactDOM = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
 
-var client = __webpack_require__(/*! ./client */ "./src/main/js/client.js");
 
-var _require = __webpack_require__(/*! ./formFields */ "./src/main/js/formFields.js"),
-    InputField = _require.InputField,
-    SelectField = _require.SelectField,
-    SelectOption = _require.SelectOption,
-    CheckBoxField = _require.CheckBoxField,
-    FileField = _require.FileField,
-    TextAreaField = _require.TextAreaField;
 
-var formUtil = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
 
-var log = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
 
-log.init({
+
+
+
+
+_log__WEBPACK_IMPORTED_MODULE_9___default.a.init({
   logLevel: 'debug'
 });
 /**
- * The stage signifies what action has been completed. The initial stage is <code>begin</code>.
+ * Required props are: 
+ * <ul>
+ *   <li>basepath - The path to the api without the domain e.g <code>/api</code></li>
+ *   <li>action - One of: [create|read|update|delete]</li>
+ *   <li>modelname - The name of the model for which a form will be displayed</li>
+ * </ul>
+ * Optional props are: 
+ * <ul>
+ *   <li>
+ *       asyncvalidation - If true validation will be done for each input as
+ *       a value is entered.
+ *   </li>
+ * </ul>
  * 
- * Each subsequent stage is set just after a successful response is returned 
- * from the api. For example from stage <code>begin</code> we send the form
- * data for validation; on successful return from that request, the stage is 
- * immediately set to <code>validate</code>
+ * <b>Note</b> action and modelname may change from the original reflected in
+ * the props. To use the current values of those properties access them via
+ * the <code>this.state.formConfig</code>
  * 
- * @type WebformStage
- */
-
-var WebformStage = {
-  BEGIN: "begin",
-  VALIDATE: "validate",
-  SUBMIT: "submit",
-  first: function first() {
-    return WebformStage.BEGIN;
-  },
-  isFirst: function isFirst(stage) {
-    return stage === WebformStage.first();
-  },
-  last: function last() {
-    return WebformStage.SUBMIT;
-  },
-  isLast: function isLast(stage) {
-    return stage === WebformStage.last();
-  },
-
-  /**
-   * @param {String} stage The stage for which the next stage is returned
-   * @returns {String} The stage after the specified stage. If the specified 
-   * stage is the last stage, returns the first stage.
-   */
-  next: function next(stage) {
-    return stage === WebformStage.BEGIN ? WebformStage.VALIDATE : stage === WebformStage.VALIDATE ? WebformStage.SUBMIT : WebformStage.BEGIN;
-  }
-};
-/**
  * Supported values for:
  * Form.formMember.type = text, number, password, file, checkbox, radio, datetime-local, date, time, hidden
- * @type type1
+ * 
+ * @type Form
  */
 
 var Form = /*#__PURE__*/function (_React$Component) {
@@ -34247,23 +34813,29 @@ var Form = /*#__PURE__*/function (_React$Component) {
     _classCallCheck(this, Form);
 
     _this = _super.call(this, props);
-    log.debug("Form#<init>. Props: ", _this.props);
+    _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#<init>. Props: ", _this.props);
     _this.state = _this.getInitialState();
     _this.onChange = _this.onChange.bind(_assertThisInitialized(_this));
     _this.onClick = _this.onClick.bind(_assertThisInitialized(_this));
     _this.onBlur = _this.onBlur.bind(_assertThisInitialized(_this));
     _this.onSubmit = _this.onSubmit.bind(_assertThisInitialized(_this));
+    _this.onBeginReferencedForm = _this.onBeginReferencedForm.bind(_assertThisInitialized(_this));
     return _this;
-  }
+  } // pendingFormConfig is used to offload the current formConfig if we have
+  // to divert/take a tangential action via another form. This way when we
+  // return we can continue from where we stopped by loading the pendingFormConfig
+  //
+
 
   _createClass(Form, [{
     key: "getInitialState",
     value: function getInitialState() {
       return {
         context: {
-          stage: WebformStage.BEGIN
+          stage: _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN
         },
         formConfig: null,
+        pendingFormConfig: null,
         values: null,
         messages: {
           errors: null,
@@ -34271,12 +34843,23 @@ var Form = /*#__PURE__*/function (_React$Component) {
         }
       };
     }
+    /**
+     * @param {object} update The new state
+     * @param {boolean} replace if state values should be entirely replaced or updated
+     * @returns {undefined}
+     */
+
   }, {
     key: "updateStates",
     value: function updateStates(update) {
-      log.trace("Form#updateStates. Update: ", update);
+      var replace = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#updateStates. Update: ", update);
       this.setState(function (state, props) {
-        return formUtil.updateObject(state, update);
+        if (replace) {
+          return update;
+        } else {
+          return _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].updateObject(state, update);
+        }
       });
     }
   }, {
@@ -34302,11 +34885,9 @@ var Form = /*#__PURE__*/function (_React$Component) {
     }
   }, {
     key: "onError",
-    value: function onError(response, target, eventName) {
-      formUtil.logResponse(response, "Form#onError");
-      log.warn(eventName + " error, " + target);
+    value: function onError(response, path) {
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, "Form#onError");
       this.printMessages(response);
-      log.trace(response.entity);
     }
   }, {
     key: "printMessages",
@@ -34314,49 +34895,31 @@ var Form = /*#__PURE__*/function (_React$Component) {
       // Sample format of both errors & messages
       // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
       var errors = response.entity["webform.messages.errors"];
-      log.debug("Errors: ", errors);
       var infos = response.entity["webform.messages.infos"];
-      log.debug("Infos: ", infos);
       var messages = {
         errors: null,
         infos: null
       };
 
       if (errors) {
+        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Errors: ", errors);
         messages.errors = errors;
       }
 
       if (infos) {
+        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Infos: ", infos);
         messages.infos = infos;
       }
 
       if (messages !== null) {
         this.updateStates({
           messages: messages
-        });
+        }, true);
       }
     }
   }, {
-    key: "onSuccessInitialLoad",
-    value: function onSuccessInitialLoad(response, target, messages) {
-      formUtil.logResponse(response, "Form#onSuccessInitialLoad");
-      var formConfig = response.entity;
-      log.trace("Config: ", formConfig);
-      var formMembers = formConfig.form.members; // for collecting initial form values
-
-      var initialFormData = {}; //            Did not work. Each formMember when printed = a serial beginning from zero
-      //            for(const formMember in formMembers) { }
-      //            formMembers = JSON.parse(JSON.stringify(formConfig.form.members));
-      //            log.debug("Type of: " + typeof(formMembers)); // object
-      //            Did not work. Each formMember when printed = a serial beginning from zero
-      //            for(const formMember in formMembers) { }
-
-      formMembers.forEach(function (formMember, index) {
-        if (formMember.value !== null) {
-          initialFormData[formMember.name] = formMember.value;
-        }
-      });
-
+    key: "getRefreshedState",
+    value: function getRefreshedState(formConfig, formValues, messages) {
       if (!messages) {
         messages = {
           errors: null,
@@ -34364,31 +34927,95 @@ var Form = /*#__PURE__*/function (_React$Component) {
         };
       }
 
-      this.updateStates({
+      var result = {
         context: {
-          stage: WebformStage.BEGIN
+          stage: _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN
         },
         formConfig: formConfig,
-        values: initialFormData,
+        values: formValues,
         messages: messages
+      };
+      return result;
+    }
+  }, {
+    key: "refreshStates",
+    value: function refreshStates(formConfig, formValues, messages) {
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logFormConfig(formConfig, "Form#refreshStates");
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#refreshStates FormValues: ", formValues);
+      var stateUpdate = this.getRefreshedState(formConfig, formValues, messages);
+      this.updateStates(stateUpdate);
+    }
+  }, {
+    key: "onSuccessInitialLoad",
+    value: function onSuccessInitialLoad(response, path, messages) {
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, "Form#onSuccessInitialLoad");
+      var formConfig = response.entity;
+      var formValues = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectFormData(formConfig);
+      this.refreshStates(formConfig, formValues, messages);
+    }
+  }, {
+    key: "getRequest",
+    value: function getRequest(path, onSuccess, onError) {
+      var _this2 = this;
+
+      if (!onError) {
+        onError = function onError(response) {
+          return _this2.onError(response, path);
+        };
+      }
+
+      var clientConfig = {
+        method: 'GET',
+        path: path
+      };
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#getRequest, submitting: " + clientConfig.path);
+      _client__WEBPACK_IMPORTED_MODULE_3___default()(clientConfig).done(function (response) {
+        _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#getRequest success: " + path);
+        onSuccess(response);
+      }, function (response) {
+        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#getRequest error: " + path);
+        onError(response);
       });
-      formUtil.logFormConfig(formConfig, "Form#onSuccessInitialLoad");
+    }
+  }, {
+    key: "getInitialData",
+    value: function getInitialData(path, messagesOnSuccess) {
+      var _this3 = this;
+
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#getInitialData. GET ", path);
+      this.getRequest(path, function (response) {
+        return _this3.onSuccessInitialLoad(response, path, messagesOnSuccess);
+      }, function (response) {
+        return _this3.onError(response, path);
+      });
+    }
+  }, {
+    key: "buildDefaultPath",
+    value: function buildDefaultPath() {
+      var formConfig = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.state.formConfig;
+      var action = formConfig ? formConfig.action : this.props.action;
+      var modelname = formConfig ? formConfig.modelname : this.props.modelname;
+      return _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPathForModel(this.props.basepath, action, modelname);
     }
   }, {
     key: "loadInitialData",
     value: function loadInitialData(messagesOnSuccess) {
-      var _this2 = this;
+      var path = this.buildDefaultPath();
+      this.getInitialData(path, messagesOnSuccess);
+    }
+  }, {
+    key: "onBeginReferencedForm",
+    value: function onBeginReferencedForm(event, path) {
+      event.preventDefault();
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#onBeginReferencedForm, path: ", path); // This kind of transition requires replacing the entire
+      // FormConfig with the update.
+      //
 
-      var path = formUtil.buildTargetPath(this.props);
-      log.debug("Form#loadInitialData. GET ", path);
-      client({
-        method: 'GET',
-        path: path
-      }).done(function (response) {
-        _this2.onSuccessInitialLoad(response, path, messagesOnSuccess);
-      }, function (response) {
-        _this2.onError(response, path, "loadInitialData");
-      });
+      var replaceEntirely = true;
+      this.updateStates({
+        pendingFormConfig: this.state.formConfig
+      }, replaceEntirely);
+      this.getInitialData(path);
     }
   }, {
     key: "componentDidMount",
@@ -34399,12 +35026,12 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "buildFormOutput",
     value: function buildFormOutput() {
       // buffer to collect form data
-      var formData = formUtil.collectConfigData(this.state.formConfig);
+      var formData = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectConfigData(this.state.formConfig);
       var source = this.state.values;
-      log.trace("Form#buildFormOutput. Values: ", source); // collect form values
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildFormOutput. Values: ", source); // collect form values
 
       var result = Object.assign(formData, source);
-      log.debug("Form#buildFormOutput. Output: ", result);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildFormOutput. Output: ", result);
       return result;
     }
   }, {
@@ -34433,19 +35060,21 @@ var Form = /*#__PURE__*/function (_React$Component) {
       var suffix;
 
       if (eventName === "onClick") {
-        suffix = "dependents";
+        suffix = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].SubStage.DEPENDENTS;
       } else if (eventName === "onBlur") {
-        suffix = "validateSingle";
+        suffix = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].SubStage.VALIDATE_SINGLE;
       } else {
         suffix = eventName;
       }
 
-      var path = formUtil.buildTargetPath(this.props, suffix);
-      log.debug("Form#buildClientConfigForFormMember. POST ", path);
-      var entity = formUtil.collectConfigData(this.state.formConfig);
+      var formConfig = this.state.formConfig;
+      var path = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPath(this.props, formConfig, suffix);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildClientConfigForFormMember. POST ", path);
+      var entity = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectConfigData(formConfig);
       entity.propertyName = name;
+      entity.propertyValue = value;
       entity[name] = value;
-      log.debug("Form#buildClientConfigForFormMember. Submitting: ", entity);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildClientConfigForFormMember. data: ", entity);
       var result = this.newFormDataClientConfig(path, entity);
       return result;
     }
@@ -34458,12 +35087,12 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "buildClientConfigForForm",
     value: function buildClientConfigForForm(eventName) {
       var formConfig = this.state.formConfig;
-      formUtil.logFormConfig(formConfig, eventName);
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logFormConfig(formConfig, eventName);
       var currStage = this.state.context.stage;
-      var nextStage = WebformStage.next(currStage);
-      var suffix = WebformStage.isFirst(nextStage) ? null : nextStage;
-      var path = formUtil.buildTargetPath(this.props, suffix);
-      log.debug(function () {
+      var nextStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].next(currStage);
+      var suffix = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].isFirst(nextStage) ? null : nextStage;
+      var path = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPath(this.props, formConfig, suffix);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
         return "Form#buildClientConfigForForm. Current stage: " + currStage + ", Next stage: " + nextStage + ", Target: " + path;
       });
       var entity = this.buildFormOutput();
@@ -34489,78 +35118,128 @@ var Form = /*#__PURE__*/function (_React$Component) {
       }
     }
   }, {
+    key: "getEventTargetValue",
+    value: function getEventTargetValue(event, formMember) {
+      var eventTarget = event.target;
+      return formMember.type === 'checkbox' || formMember.type === 'radio' ? eventTarget.checked : eventTarget.value;
+    }
+  }, {
     key: "handleEvent",
     value: function handleEvent(event, eventName, formMember) {
-      var _this3 = this;
+      var _this4 = this;
 
       // We don't need preventDefault for onChange etc
       // We particularly need it for onSubmit
       // https://github.com/facebook/react/issues/13477#issuecomment-565609467
       // 
       //        event.preventDefault();
-      formUtil.logEvent(event, eventName);
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logEvent(event, eventName);
       var eventTarget = event.target; // HTML option tags do not contain a name, the name is specified at
       // the parent select tag. However it is the option that receives events
       // So in such cases we extract the name from the formMember
 
       var name = eventTarget.name ? eventTarget.name : formMember.name;
-      var value = formMember.type === 'checkbox' || formMember.type === 'radio' ? eventTarget.checked : eventTarget.value; // onChange event is not sent to the server
+      var value = this.getEventTargetValue(event, formMember);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+        return eventName + " " + name + " = " + value;
+      }); // onChange event is not sent to the server
 
       if (eventName === "onChange") {
         this.updateValues(_defineProperty({}, name, value));
         return;
-      } //@TODO 
-      // Remove this abrupt truncation via the return statement
-      // Handle async validation via 'validateSingle' api call.
-      // Handle async loading of the 'dependents' via dependents api call.
-
-
-      if (true) {
-        return;
       } // Other events e.g onClick, onBlur are only sent if we are at first stage
 
 
-      var firstStage = WebformStage.isFirst(this.state.context.stage);
+      var firstStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].isFirst(this.state.context.stage);
 
       if (firstStage !== true) {
         return;
       }
 
       var clientConfig = this.buildClientConfig(eventName, name, value);
-      client(clientConfig).done(function (response) {
-        formUtil.logResponse(response, eventName);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#handleEvent, submitting: " + clientConfig.path + "\n", clientConfig);
+      _client__WEBPACK_IMPORTED_MODULE_3___default()(clientConfig).done(function (response) {
+        _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, eventName);
 
-        _this3.printMessages(response);
+        if ("onClick" === eventName) {
+          var choices = response.entity;
+          var formConfig = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].updateMultiChoice(_this4.state.formConfig, formMember, choices);
+
+          _this4.updateFormConfig(formConfig);
+        } else {
+          _this4.printMessages(response);
+        }
       }, function (response) {
-        _this3.onError(response, clientConfig.path, eventName);
+        _this4.onError(response, clientConfig.path);
       });
+    }
+  }, {
+    key: "isEventAccepted",
+    value: function isEventAccepted(event, formMember) {
+      var accepted;
+
+      if (formMember.multiChoice) {
+        var targetValue = this.getEventTargetValue(event, formMember);
+
+        if (targetValue !== null && targetValue !== undefined) {
+          var idNoSelection = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].getIdForDefaultSelectOption(formMember);
+          var noSelection = document.getElementById(idNoSelection).value;
+          accepted = targetValue !== noSelection;
+          _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+            return "Form#isEventAccepted accepted: " + accepted + ", target.value: " + targetValue + ", default slection: " + noSelection;
+          }); // Default select has value Select [name] ... Value is of type String
+          // Other selections each have value of type number
+          //
+          //                const value = parseInt(targetValue, 10);
+          //                accepted = ! isNaN(value);
+        } else {
+          accepted = formMember.choices ? true : false;
+        }
+      } else {
+        accepted = true;
+      }
+
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#isEventAccepted. accepted: " + accepted + ", FormMember: " + formMember.name);
+      return accepted;
     }
   }, {
     key: "onChange",
     value: function onChange(formMember, event) {
-      this.handleEvent(event, "onChange", formMember);
+      if (this.isEventAccepted(event, formMember)) {
+        this.handleEvent(event, "onChange", formMember);
+      }
     }
   }, {
     key: "onClick",
     value: function onClick(formMember, event) {
-      this.handleEvent(event, "onClick", formMember);
+      if (this.isEventAccepted(event, formMember)) {
+        var value = this.getEventTargetValue(event, formMember);
+
+        if (value !== null && value !== "" && value !== undefined) {
+          this.handleEvent(event, "onClick", formMember);
+        }
+      }
     }
   }, {
     key: "onBlur",
     value: function onBlur(formMember, event) {
-      this.handleEvent(event, "onBlur", formMember);
+      if (this.props.asyncvalidation === true || this.props.asyncvalidation === 'true') {
+        if (this.isEventAccepted(event, formMember)) {
+          this.handleEvent(event, "onBlur", formMember);
+        }
+      }
     }
   }, {
     key: "nextStage",
     value: function nextStage() {
       var currStage = this.state.context.stage;
-      var nextStage = WebformStage.next(currStage);
+      var nextStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].next(currStage);
       return nextStage;
     }
   }, {
     key: "isLastStage",
     value: function isLastStage() {
-      var lastStage = WebformStage.isLast(this.nextStage());
+      var lastStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].isLast(this.nextStage());
       return lastStage;
     }
   }, {
@@ -34574,26 +35253,113 @@ var Form = /*#__PURE__*/function (_React$Component) {
       var formConfig = this.isLastStage() === true ? this.state.formConfig : response.entity;
       return formConfig;
     }
+    /**
+     * Return {Form.state.pendingFormConfig} if it matches the formid paramter
+     * of {Form.state.formConfig.targetOnCompletion}.
+     * 
+     * Parse the query part of {Form.state.formConfig.targetOnCompletion} and 
+     * check if the <code>fid</code> parameter is equal to the <code>fid</code> 
+     * property of {Form.state.pendingFormConfig}. If both are equal, return 
+     * the {Form.state.pendingFormConfig}, otherwise set the 
+     * {Form.state.pendingFormConfig} to <code>null</code> and return <code>null</code>.
+     * @returns {Form.state.pendingFormConfig}
+     */
+
+  }, {
+    key: "reconcileTargetWithPendingFormConfig",
+    value: function reconcileTargetWithPendingFormConfig() {
+      // Format of targetOnCompletion: /webform/create/post?fid=form172d18039a7
+      var targetOnCompletion = this.state.formConfig.targetOnCompletion;
+      var pendingConfig = this.state.pendingFormConfig;
+      var result = null;
+
+      if (targetOnCompletion !== null && targetOnCompletion !== undefined && pendingConfig !== null && pendingConfig !== undefined) {
+        var pos = targetOnCompletion.indexOf("?");
+
+        if (pos !== -1) {
+          var len = targetOnCompletion.length;
+          var query = targetOnCompletion.substring(pos, len);
+          var parsed = query_string__WEBPACK_IMPORTED_MODULE_2___default.a.parse(query);
+
+          if (parsed.fid === pendingConfig.fid) {
+            result = pendingConfig;
+          }
+        }
+      }
+
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+        return "Output: " + result + ", target on completion: " + targetOnCompletion + ", pendingFormConfig.fid: " + (pendingConfig ? pendingConfig.fid : null);
+      });
+      return result;
+    }
+  }, {
+    key: "getSuccessMessage",
+    value: function getSuccessMessage(msg) {
+      if (!msg) {
+        msg = "Success";
+      }
+
+      return {
+        errors: null,
+        infos: {
+          "0": msg
+        }
+      };
+    }
   }, {
     key: "onSuccessSubmit",
     value: function onSuccessSubmit(response, target) {
-      formUtil.logResponse(response, "Form#onSuccessSubmit");
+      var _this5 = this;
+
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, "Form#onSuccessSubmit");
       var lastStage = this.isLastStage() === true;
 
       if (lastStage) {
-        if (this.props.targetOnCompletion) {
-          window.location = this.props.targetOnCompletion;
+        _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Last stage successful: ", this.state.formConfig);
+        var pendingFormConfig = this.reconcileTargetWithPendingFormConfig(); ///////////////////////////// NOTE /////////////////////////////
+        // If there is a Form.state.pendingFormConfig we load it.
+        // But we first load initial data from the api, again. When we
+        // did not load initial data at this point SESSION WAS LOST
+        //
+
+        if (pendingFormConfig !== null && pendingFormConfig !== undefined) {
+          // Add the newly created entity to the formConfig
+          _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].addNewlyCreatedToForm(response, pendingFormConfig); // This contains web page path: /webform/create/post?fid=form172d4d3fa82
+          // However, we want api path: /webform/api/create/post?fid=form172d4d3fa82
+          // So we append the query part of this path to the path 
+          // containing the api path.
+          // 
+          //                const path = this.state.formConfig.targetOnCompletion;
+
+          var base = this.buildDefaultPath(pendingFormConfig);
+          var path = base + '?fid=' + pendingFormConfig.fid;
+
+          var onSuccess = function onSuccess(response) {
+            var formConfig = response.entity; // for collecting initial form values
+
+            var formValues = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectFormData(formConfig);
+            formValues = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectFormData(pendingFormConfig, formValues);
+            _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#onSuccessSubmit form values: ", formValues);
+
+            var stateUpdate = _this5.getRefreshedState({}, formValues, _this5.getSuccessMessage());
+
+            stateUpdate.formConfig = formConfig;
+            stateUpdate.pendingFormConfig = null; // This kind of transition requires replacing the entire
+            // FormConfig with the update.
+            //
+
+            var replaceEntirely = true;
+
+            _this5.updateStates(stateUpdate, replaceEntirely);
+          };
+
+          this.getRequest(path, onSuccess);
         } else {
-          this.loadInitialData({
-            errors: null,
-            infos: {
-              "0": "Success"
-            }
-          });
+          this.loadInitialData(this.getSuccessMessage());
         }
       } else {
         // Move to the first stage, to prepare for form inputs all over agin
-        var nextStage = lastStage ? WebformStage.BEGIN : this.nextStage();
+        var nextStage = lastStage ? _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN : this.nextStage();
         var formConfig = this.nextFormConfig(response);
         this.updateStates({
           context: {
@@ -34606,51 +35372,50 @@ var Form = /*#__PURE__*/function (_React$Component) {
           }
         });
         var form = formConfig.form;
-        formUtil.logForm(form, "Form#onSuccessSubmit");
+        _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logForm(form, "Form#onSuccessSubmit");
       }
     }
   }, {
     key: "onSubmit",
     value: function onSubmit(event) {
-      var _this4 = this;
+      var _this6 = this;
 
       event.preventDefault();
-      var name = "onSubmit";
-      var clientConfig = this.buildClientConfig(name);
-      client(clientConfig).done(function (response) {
-        _this4.onSuccessSubmit(response, clientConfig.path);
+      var eventName = "onSubmit";
+      var clientConfig = this.buildClientConfig(eventName);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#onSubmit, submitting: " + clientConfig.path + "\n", clientConfig);
+      _client__WEBPACK_IMPORTED_MODULE_3___default()(clientConfig).done(function (response) {
+        _this6.onSuccessSubmit(response, clientConfig.path);
       }, function (response) {
-        _this4.onError(response, clientConfig.path, name);
+        _this6.onError(response, clientConfig.path);
       });
     }
   }, {
     key: "isFormDisabled",
     value: function isFormDisabled() {
-      var _this5 = this;
+      var _this7 = this;
 
       var stage = this.state.context.stage;
-      var form = this.state.formConfig.form;
-      var action = form.action;
-      var result = stage === WebformStage.VALIDATE || action === "read";
-      log.trace(function () {
-        return "Form#isFormDisabled " + result + ", State.context: " + JSON.stringify(_this5.state.context);
+      var action = this.state.formConfig.action;
+      var result = stage === _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].VALIDATE || action === "read";
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+        return "Form#isFormDisabled " + result + ", State.context: " + JSON.stringify(_this7.state.context);
       });
       return result;
     }
   }, {
     key: "getFormHeading",
     value: function getFormHeading() {
-      var form = this.state.formConfig.form;
-      var formName = form.displayName;
+      var formName = this.state.formConfig.form.displayName;
       var stage = this.state.context.stage;
-      var action = form.action;
+      var action = this.state.formConfig.action;
       var result;
 
       if (action === "read") {
         result = "Details for selected " + formName;
-      } else if (stage === WebformStage.BEGIN) {
+      } else if (stage === _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN) {
         result = "Enter " + formName + " details";
-      } else if (stage === WebformStage.VALIDATE) {
+      } else if (stage === _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].VALIDATE) {
         result = "Confirm " + formName + " entries";
       } else {
         result = formName + " Form";
@@ -34662,29 +35427,29 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "render",
     value: function render() {
       var form = this.state.formConfig !== null ? this.state.formConfig.form : null;
-      formUtil.logForm(form, "Form#render");
-      return form !== null && /*#__PURE__*/React.createElement("form", null, /*#__PURE__*/React.createElement("h3", null, this.getFormHeading()), /*#__PURE__*/React.createElement(FormMessages, {
+      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logForm(form, "Form#render");
+      return form !== null && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("form", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("h3", null, this.getFormHeading()), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormMessages, {
         id: "errors",
         ref: "errors",
         className: "error-message",
         messages: this.state.messages.errors
-      }), /*#__PURE__*/React.createElement(FormMessages, {
+      }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormMessages, {
         id: "infos",
         ref: "infos",
         className: "info-message",
         messages: this.state.messages.infos
-      }), /*#__PURE__*/React.createElement(FormRows, {
-        basepath: this.props.basepath,
+      }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormRows, _extends({}, this.props, {
         form: form,
         values: this.state.values,
         disabled: this.isFormDisabled(),
         onChange: this.onChange,
         onClick: this.onClick,
-        onBlur: this.onBlur
-      }), /*#__PURE__*/React.createElement("button", {
+        onBlur: this.onBlur,
+        onBeginReferencedForm: this.onBeginReferencedForm
+      })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("button", {
         type: "reset",
         className: "button"
-      }, "Reset"), "\xA0", /*#__PURE__*/React.createElement("button", {
+      }, "Reset"), "\xA0", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("button", {
         type: "submit",
         className: "button primary-button",
         onClick: this.onSubmit
@@ -34693,7 +35458,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
   }]);
 
   return Form;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 
@@ -34714,31 +35479,31 @@ var FormMessages = /*#__PURE__*/function (_React$Component2) {
       // this returned either false or the actual value of this.props.messages
       //        const hasMessages = this.props.messages !== null && this.props.messages;
       var hasMessages = this.props.messages !== null ? true : this.props.messages ? true : false;
-      log.trace("HasMessages: ", hasMessages);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("HasMessages: ", hasMessages);
       return hasMessages;
     }
   }, {
     key: "render",
     value: function render() {
-      var _this6 = this;
+      var _this8 = this;
 
       // Sample format
       // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
-      log.trace("Messages: ", this.props.messages);
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Messages: ", this.props.messages);
       var messageRows = this.hasMessages() === false ? null : Object.values(this.props.messages).map(function (message, index) {
-        return /*#__PURE__*/React.createElement("div", {
-          key: _this6.props.id + '-' + index,
-          className: _this6.props.className
+        return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+          key: _this8.props.id + '-' + index,
+          className: _this8.props.className
         }, message);
       });
-      return messageRows === null ? /*#__PURE__*/React.createElement("span", null) : /*#__PURE__*/React.createElement("div", {
+      return messageRows === null ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", null) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "message-group"
       }, messageRows);
     }
   }]);
 
   return FormMessages;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 
@@ -34761,30 +35526,30 @@ var FormRows = /*#__PURE__*/function (_React$Component3) {
   }, {
     key: "render",
     value: function render() {
-      var _this7 = this;
+      var _this9 = this;
 
       var formRows = this.props.form.members.filter(function (formMember) {
         return formMember.type !== 'hidden';
       }).map(function (formMember) {
-        return /*#__PURE__*/React.createElement(FormRow, {
-          basepath: _this7.props.basepath,
+        return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormRow, _extends({}, _this9.props, {
           key: formMember.id + '-row',
           ref: formMember.id + '-row',
-          form: _this7.props.form,
+          form: _this9.props.form,
           formMember: formMember,
-          value: _this7.getValue(formMember.name),
-          disabled: _this7.props.disabled,
-          onChange: _this7.props.onChange,
-          onClick: _this7.props.onClick,
-          onBlur: _this7.props.onBlur
-        });
+          value: _this9.getValue(formMember.name),
+          disabled: _this9.props.disabled,
+          onChange: _this9.props.onChange,
+          onClick: _this9.props.onClick,
+          onBlur: _this9.props.onBlur,
+          onBeginReferencedForm: _this9.props.onBeginReferencedForm
+        }));
       });
       return formRows;
     }
   }]);
 
   return FormRows;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 
@@ -34793,21 +35558,57 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
 
   var _super4 = _createSuper(FormRow);
 
-  function FormRow() {
+  function FormRow(props) {
+    var _this10;
+
     _classCallCheck(this, FormRow);
 
-    return _super4.apply(this, arguments);
+    _this10 = _super4.call(this, props);
+    _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormRow#<init>. Props: ", _this10.props);
+    _this10.state = {
+      multiChoice: _this10.isMultiChoice()
+    };
+    return _this10;
   }
 
   _createClass(FormRow, [{
-    key: "render",
-    value: function render() {
-      log.trace("FormRow#render. Value: ", this.props.value);
+    key: "isMultiChoice",
+    value: function isMultiChoice() {
+      var multiChoice = this.props.formMember.multiChoice;
+      return multiChoice === true || multiChoice === 'true';
+    }
+    /**
+     * FormMember.multiChoice is updated from <code>false</code> to <code>true</code>
+     * after the multi-choice of a dependent formMember are newly loaded from 
+     * the API. This is the case for so-called dependent componetns. For example
+     * Selecting a country provides a context for populating the region options.
+     * We thus say the region option is dependent on the country option.
+     * @returns {Boolean}
+     */
+
+  }, {
+    key: "isMultiChoicePropertyUpdated",
+    value: function isMultiChoicePropertyUpdated() {
+      return !this.state.multiChoice && this.isMultiChoice();
+    }
+  }, {
+    key: "shouldComponentUpdate",
+    value: function shouldComponentUpdate() {
+      if (this.isMultiChoicePropertyUpdated()) {
+        return true;
+      } // This is the default return value
+
+
+      return true;
+    }
+  }, {
+    key: "getFormField",
+    value: function getFormField() {
       var formField;
 
-      if (this.props.formMember.multiChoice) {
-        formField = /*#__PURE__*/React.createElement(SelectField, {
-          form: this.props.form,
+      if (this.isMultiChoice()) {
+        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["SelectField"], {
+          formid: this.props.form.id,
           formMember: this.props.formMember,
           value: this.props.value,
           disabled: this.props.disabled,
@@ -34816,8 +35617,8 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
           onBlur: this.props.onBlur
         });
       } else if (this.props.formMember.type === 'checkbox') {
-        formField = /*#__PURE__*/React.createElement(CheckBoxField, {
-          form: this.props.form,
+        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["CheckBoxField"], {
+          formid: this.props.form.id,
           formMember: this.props.formMember,
           value: this.props.value,
           disabled: this.props.disabled,
@@ -34826,8 +35627,8 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
           onBlur: this.props.onBlur
         });
       } else if (this.props.formMember.type === 'file') {
-        formField = /*#__PURE__*/React.createElement(FileField, {
-          form: this.props.form,
+        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["FileField"], {
+          formid: this.props.form.id,
           formMember: this.props.formMember,
           value: this.props.value,
           disabled: this.props.disabled,
@@ -34837,8 +35638,8 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
         });
       } else {
         if (this.props.formMember.numberOfLines < 2) {
-          formField = /*#__PURE__*/React.createElement(InputField, {
-            form: this.props.form,
+          formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["InputField"], {
+            formid: this.props.form.id,
             formMember: this.props.formMember,
             value: this.props.value,
             disabled: this.props.disabled,
@@ -34847,8 +35648,8 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
             onBlur: this.props.onBlur
           });
         } else {
-          formField = /*#__PURE__*/React.createElement(TextAreaField, {
-            form: this.props.form,
+          formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["TextAreaField"], {
+            formid: this.props.form.id,
             formMember: this.props.formMember,
             value: this.props.value,
             disabled: this.props.disabled,
@@ -34859,120 +35660,55 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
         }
       }
 
-      var refFormHref = this.props.formMember.referencedFormHref;
-      var refName = this.props.formMember.label;
-      var multiChoice = this.props.formMember.multichoice;
-      var msgPrefix = multiChoice === true ? "Select " + refName + " or " : refName + " is required. ";
-      var refFormMsg = refFormHref !== null ? "Create one" : "";
-      var displayMember = refFormHref === null ? true : multiChoice;
-      return /*#__PURE__*/React.createElement("div", {
+      return formField;
+    }
+  }, {
+    key: "render",
+    value: function render() {
+      var _this11 = this;
+
+      var multiChoice = this.isMultiChoice();
+      var choices = this.props.formMember.choices;
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+        return "FormRow#render. Type: " + _this11.props.formMember.type + ", MultiChoice: " + multiChoice + ", Name: " + _this11.props.formMember.name + ", Value: " + _this11.props.value + ", choices: " + (choices ? Object.keys(choices).length : null);
+      });
+      var config = _referencedFormConfig__WEBPACK_IMPORTED_MODULE_8__["default"].getConfig(this.props);
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "form-row"
-      }, /*#__PURE__*/React.createElement(FieldHeading, {
+      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFieldHeading__WEBPACK_IMPORTED_MODULE_4__["default"], {
         formMember: this.props.formMember
-      }), this.props.formMember.type === 'checkbox' && ' ' || /*#__PURE__*/React.createElement("br", null), displayMember && formField, refFormHref !== null && /*#__PURE__*/React.createElement("span", null, msgPrefix, /*#__PURE__*/React.createElement("a", {
-        href: this.props.basepath + refFormHref,
-        target: "_blank"
-      }, refFormMsg)));
+      }), this.props.formMember.type === 'checkbox' && ' ' || /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("br", null), config.displayField && this.getFormField(), config.displayLink && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("tt", null, config.message.prefix, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("a", {
+        href: "#",
+        target: "_blank",
+        onClick: function onClick(e) {
+          return _this11.props.onBeginReferencedForm(e, config.link);
+        }
+      }, config.message.value)));
     }
   }]);
 
   return FormRow;
-}(React.Component);
-
-;
-
-var FieldHeading = /*#__PURE__*/function (_React$Component5) {
-  _inherits(FieldHeading, _React$Component5);
-
-  var _super5 = _createSuper(FieldHeading);
-
-  function FieldHeading() {
-    _classCallCheck(this, FieldHeading);
-
-    return _super5.apply(this, arguments);
-  }
-
-  _createClass(FieldHeading, [{
-    key: "render",
-    value: function render() {
-      return this.props.formMember.type !== 'hidden' && /*#__PURE__*/React.createElement("span", {
-        className: "nowrap"
-      }, /*#__PURE__*/React.createElement("label", {
-        className: "nowrap",
-        htmlFor: this.props.formMember.id
-      }, this.props.formMember.label), /*#__PURE__*/React.createElement(MandatoryFieldTag, {
-        show: this.props.formMember.required
-      }), /*#__PURE__*/React.createElement(FieldAdvice, {
-        formMember: this.props.formMember
-      }));
-    }
-  }]);
-
-  return FieldHeading;
-}(React.Component);
-
-;
-
-var MandatoryFieldTag = /*#__PURE__*/function (_React$Component6) {
-  _inherits(MandatoryFieldTag, _React$Component6);
-
-  var _super6 = _createSuper(MandatoryFieldTag);
-
-  function MandatoryFieldTag() {
-    _classCallCheck(this, MandatoryFieldTag);
-
-    return _super6.apply(this, arguments);
-  }
-
-  _createClass(MandatoryFieldTag, [{
-    key: "render",
-    value: function render() {
-      return this.props.show === true && /*#__PURE__*/React.createElement("font", {
-        className: "red heavy-max"
-      }, " * ");
-    }
-  }]);
-
-  return MandatoryFieldTag;
-}(React.Component);
-
-;
-
-var FieldAdvice = /*#__PURE__*/function (_React$Component7) {
-  _inherits(FieldAdvice, _React$Component7);
-
-  var _super7 = _createSuper(FieldAdvice);
-
-  function FieldAdvice() {
-    _classCallCheck(this, FieldAdvice);
-
-    return _super7.apply(this, arguments);
-  }
-
-  _createClass(FieldAdvice, [{
-    key: "render",
-    value: function render() {
-      return this.props.formMember.advice && /*#__PURE__*/React.createElement("span", {
-        className: "formFieldMessage",
-        id: this.props.formMember.id + '-message'
-      }, "\u2003(", this.props.formMember.advice, ")");
-    }
-  }]);
-
-  return FieldAdvice;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 /* harmony default export */ __webpack_exports__["default"] = (Form);
 
 /***/ }),
 
-/***/ "./src/main/js/formFields.js":
-/*!***********************************!*\
-  !*** ./src/main/js/formFields.js ***!
-  \***********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ "./src/main/js/formFieldHeading.js":
+/*!*****************************************!*\
+  !*** ./src/main/js/formFieldHeading.js ***!
+  \*****************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
+/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
+
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -34996,9 +35732,173 @@ function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Re
 
 function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
 
-var React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
-var log = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+
+
+var FieldHeading = /*#__PURE__*/function (_React$Component) {
+  _inherits(FieldHeading, _React$Component);
+
+  var _super = _createSuper(FieldHeading);
+
+  function FieldHeading() {
+    _classCallCheck(this, FieldHeading);
+
+    return _super.apply(this, arguments);
+  }
+
+  _createClass(FieldHeading, [{
+    key: "headingHtm",
+    value: function headingHtm() {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
+        className: "nowrap"
+      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("label", {
+        className: "nowrap",
+        htmlFor: this.props.formMember.id
+      }, this.props.formMember.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(MandatoryFieldTag, {
+        show: this.props.formMember.required
+      }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FieldAdvice, {
+        formMember: this.props.formMember
+      }));
+    }
+  }, {
+    key: "render",
+    value: function render() {
+      var htm;
+
+      if (this.props.formMember.type !== 'hidden') {
+        htm = this.headingHtm();
+      } else {
+        htm = null;
+      }
+
+      return htm;
+    }
+  }]);
+
+  return FieldHeading;
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
+
+;
+
+var MandatoryFieldTag = /*#__PURE__*/function (_React$Component2) {
+  _inherits(MandatoryFieldTag, _React$Component2);
+
+  var _super2 = _createSuper(MandatoryFieldTag);
+
+  function MandatoryFieldTag() {
+    _classCallCheck(this, MandatoryFieldTag);
+
+    return _super2.apply(this, arguments);
+  }
+
+  _createClass(MandatoryFieldTag, [{
+    key: "render",
+    value: function render() {
+      var htm;
+
+      if (this.props.show === true) {
+        htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("font", {
+          className: "red heavy-max"
+        }, " * ");
+      } else {
+        htm = null;
+      }
+
+      return htm;
+    }
+  }]);
+
+  return MandatoryFieldTag;
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
+
+;
+
+var FieldAdvice = /*#__PURE__*/function (_React$Component3) {
+  _inherits(FieldAdvice, _React$Component3);
+
+  var _super3 = _createSuper(FieldAdvice);
+
+  function FieldAdvice() {
+    _classCallCheck(this, FieldAdvice);
+
+    return _super3.apply(this, arguments);
+  }
+
+  _createClass(FieldAdvice, [{
+    key: "render",
+    value: function render() {
+      var id = this.props.formMember.id + '-message';
+      var htm;
+
+      if (this.props.formMember.advice) {
+        htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
+          className: "formFieldMessage",
+          id: id
+        }, "\u2003(", this.props.formMember.advice, ")");
+      } else {
+        htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
+          className: "formFieldMessage",
+          id: id
+        });
+      }
+
+      return htm;
+    }
+  }]);
+
+  return FieldAdvice;
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
+
+;
+/* harmony default export */ __webpack_exports__["default"] = (FieldHeading);
+
+/***/ }),
+
+/***/ "./src/main/js/formFields.js":
+/*!***********************************!*\
+  !*** ./src/main/js/formFields.js ***!
+  \***********************************/
+/*! exports provided: InputField, SelectField, CheckBoxField, FileField, TextAreaField */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "InputField", function() { return InputField; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SelectField", function() { return SelectField; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CheckBoxField", function() { return CheckBoxField; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FileField", function() { return FileField; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextAreaField", function() { return TextAreaField; });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _formUtil__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_2__);
+
+
+function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _createSuper(Derived) { var hasNativeReflectConstruct = _isNativeReflectConstruct(); return function _createSuperInternal() { var Super = _getPrototypeOf(Derived), result; if (hasNativeReflectConstruct) { var NewTarget = _getPrototypeOf(this).constructor; result = Reflect.construct(Super, arguments, NewTarget); } else { result = Super.apply(this, arguments); } return _possibleConstructorReturn(this, result); }; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Reflect.construct) return false; if (Reflect.construct.sham) return false; if (typeof Proxy === "function") return true; try { Date.prototype.toString.call(Reflect.construct(Date, [], function () {})); return true; } catch (e) { return false; } }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+
+
 
 var WebformInputClass = {
   FORM_INPUT: "form-input",
@@ -35023,12 +35923,12 @@ var InputField = /*#__PURE__*/function (_React$Component) {
       var _this = this;
 
       var className = WebformInputClass.FORM_INPUT;
-      return /*#__PURE__*/React.createElement("input", {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("input", {
         className: className + ' ' + this.props.formMember.type,
         type: this.props.formMember.type,
         disabled: this.props.disabled,
         required: this.props.formMember.required,
-        form: this.props.form.id,
+        form: this.props.formid,
         id: this.props.formMember.id,
         ref: this.props.formMember.id,
         name: this.props.formMember.name,
@@ -35050,7 +35950,7 @@ var InputField = /*#__PURE__*/function (_React$Component) {
   }]);
 
   return InputField;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 
@@ -35066,50 +35966,51 @@ var SelectField = /*#__PURE__*/function (_React$Component2) {
   }
 
   _createClass(SelectField, [{
+    key: "listItemAt",
+    value: function listItemAt(index) {
+      var choices = this.props.formMember.choices;
+      var val = choices[index];
+      var selected = index === this.props.value || val === this.props.value;
+      _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace(function () {
+        return "SelectField#listItemAt. " + index + " = " + val + ", selected: " + selected;
+      }); //Warning: Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>.
+      //            selected={selected}
+
+      var optionId = _formUtil__WEBPACK_IMPORTED_MODULE_1__["default"].getIdForSelectOptionAt(this.props.formMember, index);
+      var htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("option", {
+        ref: optionId,
+        id: optionId,
+        key: optionId,
+        disabled: this.props.disabled,
+        name: this.props.formMember.name,
+        value: index
+      }, val);
+      _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("SelectField#listItemAt. ", htm);
+      return htm;
+    }
+  }, {
     key: "render",
     value: function render() {
       var _this2 = this;
 
       var choices = this.props.formMember.choices;
-      log.trace("SelectField#render. Choices: ", choices);
+      var itemCount = Object.keys(choices).length;
+      _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("SelectField#render. Choices: ", choices);
+      _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("SelectField#render. Choices: ", itemCount);
       var options = [];
 
-      var _loop = function _loop(key) {
-        var val = choices[key];
-        log.trace(function () {
-          return "SelectField#render. " + key + " = " + val;
-        });
-        var selected = key === _this2.props.value || val === _this2.props.value;
-
-        if (selected === true) {
-          log.trace(function () {
-            return "SelectField#render. Selected: " + key + " = " + val;
-          });
-        }
-
-        var htm = /*#__PURE__*/React.createElement(SelectOption, {
-          key: key,
-          form: _this2.props.form,
-          formMember: _this2.props.formMember,
-          value: key,
-          label: val,
-          selected: selected,
-          disabled: _this2.props.disabled
-        });
-        log.trace("SelectField#render. ", htm);
+      for (var index in choices) {
+        var htm = this.listItemAt(index);
         options.push(htm);
-      };
-
-      for (var key in choices) {
-        _loop(key);
       }
 
       var className = WebformInputClass.FORM_SELECT;
-      return /*#__PURE__*/React.createElement("select", {
+      var noSelection = _formUtil__WEBPACK_IMPORTED_MODULE_1__["default"].getIdForDefaultSelectOption(this.props.formMember);
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("select", {
         className: className + ' ' + this.props.formMember.type,
         disabled: this.props.disabled,
         required: this.props.formMember.required,
-        form: this.props.form.id,
+        form: this.props.formid,
         name: this.props.formMember.name,
         id: this.props.formMember.id,
         ref: this.props.formMember.id,
@@ -35124,51 +36025,27 @@ var SelectField = /*#__PURE__*/function (_React$Component2) {
         onBlur: function onBlur(e) {
           return _this2.props.onBlur(_this2.props.formMember, e);
         }
-      }, /*#__PURE__*/React.createElement("option", null, "Select ", this.props.formMember.label), options);
+      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("option", {
+        ref: noSelection,
+        id: noSelection
+      }, "Select ", this.props.formMember.label), options);
     }
   }]);
 
   return SelectField;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 
-var SelectOption = /*#__PURE__*/function (_React$Component3) {
-  _inherits(SelectOption, _React$Component3);
+var CheckBoxField = /*#__PURE__*/function (_React$Component3) {
+  _inherits(CheckBoxField, _React$Component3);
 
-  var _super3 = _createSuper(SelectOption);
-
-  function SelectOption() {
-    _classCallCheck(this, SelectOption);
-
-    return _super3.apply(this, arguments);
-  }
-
-  _createClass(SelectOption, [{
-    key: "render",
-    value: function render() {
-      return /*#__PURE__*/React.createElement("option", {
-        disabled: this.props.disabled,
-        name: this.props.formMember.name,
-        value: this.props.value
-      }, this.props.label);
-    }
-  }]);
-
-  return SelectOption;
-}(React.Component);
-
-;
-
-var CheckBoxField = /*#__PURE__*/function (_React$Component4) {
-  _inherits(CheckBoxField, _React$Component4);
-
-  var _super4 = _createSuper(CheckBoxField);
+  var _super3 = _createSuper(CheckBoxField);
 
   function CheckBoxField() {
     _classCallCheck(this, CheckBoxField);
 
-    return _super4.apply(this, arguments);
+    return _super3.apply(this, arguments);
   }
 
   _createClass(CheckBoxField, [{
@@ -35182,16 +36059,16 @@ var CheckBoxField = /*#__PURE__*/function (_React$Component4) {
       var _this3 = this;
 
       var className = WebformInputClass.FORM_INPUT;
-      return /*#__PURE__*/React.createElement("input", {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("input", {
         className: className + ' ' + this.props.formMember.type,
         type: this.props.formMember.type,
         disabled: this.props.disabled,
         required: this.props.formMember.required,
-        form: this.props.form.id,
+        form: this.props.formid,
         id: this.props.formMember.id,
         ref: this.props.formMember.id,
         name: this.props.formMember.name,
-        checked: this.props.value,
+        checked: this.props.value === true || this.props.value === 'true',
         placeholder: this.props.formMember.label,
         onChange: function onChange(e) {
           return _this3.props.onChange(_this3.props.formMember, e);
@@ -35207,22 +36084,22 @@ var CheckBoxField = /*#__PURE__*/function (_React$Component4) {
   }]);
 
   return CheckBoxField;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 /*
  * We display file input as text if the form field is disabled 
  */
 
-var FileField = /*#__PURE__*/function (_React$Component5) {
-  _inherits(FileField, _React$Component5);
+var FileField = /*#__PURE__*/function (_React$Component4) {
+  _inherits(FileField, _React$Component4);
 
-  var _super5 = _createSuper(FileField);
+  var _super4 = _createSuper(FileField);
 
   function FileField() {
     _classCallCheck(this, FileField);
 
-    return _super5.apply(this, arguments);
+    return _super4.apply(this, arguments);
   }
 
   _createClass(FileField, [{
@@ -35231,12 +36108,12 @@ var FileField = /*#__PURE__*/function (_React$Component5) {
       var _this4 = this;
 
       var className = WebformInputClass.FORM_INPUT;
-      return /*#__PURE__*/React.createElement("input", {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("input", {
         className: className + ' ' + this.props.formMember.type,
         type: this.props.disabled ? 'text' : 'file',
         disabled: this.props.disabled,
         required: this.props.formMember.required,
-        form: this.props.form.id,
+        form: this.props.formid,
         id: this.props.formMember.id,
         ref: this.props.formMember.id,
         name: this.props.formMember.name,
@@ -35258,19 +36135,19 @@ var FileField = /*#__PURE__*/function (_React$Component5) {
   }]);
 
   return FileField;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
 
-var TextAreaField = /*#__PURE__*/function (_React$Component6) {
-  _inherits(TextAreaField, _React$Component6);
+var TextAreaField = /*#__PURE__*/function (_React$Component5) {
+  _inherits(TextAreaField, _React$Component5);
 
-  var _super6 = _createSuper(TextAreaField);
+  var _super5 = _createSuper(TextAreaField);
 
   function TextAreaField() {
     _classCallCheck(this, TextAreaField);
 
-    return _super6.apply(this, arguments);
+    return _super5.apply(this, arguments);
   }
 
   _createClass(TextAreaField, [{
@@ -35286,12 +36163,12 @@ var TextAreaField = /*#__PURE__*/function (_React$Component6) {
       var className = WebformInputClass.FORM_TEXTAREA;
       var numLines = this.props.formMember.numberOfLines;
       var rowCount = numLines > 5 ? 5 : numLines;
-      return /*#__PURE__*/React.createElement("textarea", {
+      return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("textarea", {
         className: className + ' ' + this.props.formMember.type,
         rows: rowCount,
         disabled: this.props.disabled,
         required: this.props.formMember.required,
-        form: this.props.form.id,
+        form: this.props.formid,
         id: this.props.formMember.id,
         ref: this.props.formMember.id,
         name: this.props.formMember.name,
@@ -35311,17 +36188,10 @@ var TextAreaField = /*#__PURE__*/function (_React$Component6) {
   }]);
 
   return TextAreaField;
-}(React.Component);
+}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
 
 ;
-module.exports = {
-  InputField: InputField,
-  SelectField: SelectField,
-  SelectOption: SelectOption,
-  CheckBoxField: CheckBoxField,
-  FileField: FileField,
-  TextAreaField: TextAreaField
-};
+
 
 /***/ }),
 
@@ -35329,16 +36199,35 @@ module.exports = {
 /*!*********************************!*\
   !*** ./src/main/js/formUtil.js ***!
   \*********************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _errors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./errors */ "./src/main/js/errors.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_1__);
+
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-var log = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+
 
 var formUtil = {
-  buildTargetPath: function buildTargetPath(props, suffix) {
-    var target = props.basepath + '/api/' + props.action + '/' + props.modelname;
+  getIdForSelectOptionAt: function getIdForSelectOptionAt(formMember, index) {
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("index", index);
+    return formMember.id + '-' + index;
+  },
+  getIdForDefaultSelectOption: function getIdForDefaultSelectOption(formMember) {
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
+    return formMember.id + '-no-selection';
+  },
+  buildTargetPathForModel: function buildTargetPathForModel(basepath, action, modelname, suffix) {
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("basepath", basepath);
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("action", action);
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("modelname", modelname);
+    var target = basepath + '/api/' + action + '/' + modelname;
 
     if (suffix) {
       target = target + '/' + suffix;
@@ -35346,12 +36235,101 @@ var formUtil = {
 
     return target;
   },
+  buildTargetPath: function buildTargetPath(props, formConfig, suffix) {
+    return formUtil.buildTargetPathForModel(props.basepath, formConfig.action, formConfig.modelname, suffix);
+  },
+
+  /**
+   * Update the appropriate form member with the value gotten from the newly 
+   * created entity.
+   * 
+   * This method makes use of the {XMLHttpRequest.response.headers.Location}
+   * property to determine which form member to update and also the id of the
+   * newly created. The value of the form member selected for update is 
+   * set to the value of the id of the newly created entity.
+   * 
+   * @param {XMLHttpRequest.response} response
+   * @param {Form.formConfig} formConfig
+   * @returns {boolean} true if form was updated with newly created, otherwise false
+   */
+  addNewlyCreatedToForm: function addNewlyCreatedToForm(response, formConfig) {
+    var added = false;
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("Form#addNewlyCreatedToForm ", response.entity);
+
+    if (response.entity && formConfig.form.members) {
+      //Format:  {"Location":"http://localhost:9010/read/blog/1"}
+      var loc = response.headers['Location'];
+      _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("Form#addNewlyCreatedToForm Response.headers.Location: ", loc);
+
+      if (loc) {
+        formConfig.form.members.forEach(function (formMember, index) {
+          var tgt = "/" + formMember.name + "/";
+          var pos = loc.indexOf(tgt);
+
+          if (pos === -1) {
+            tgt = "/" + formMember.name.toLowerCase() + "/";
+            pos = loc.indexOf(tgt);
+          }
+
+          if (pos !== -1) {
+            var idString = loc.substring(pos + tgt.length, loc.length);
+            var id = parseInt(idString, 10);
+            formMember.value = id;
+            added = true;
+            _log__WEBPACK_IMPORTED_MODULE_1___default.a.debug(function () {
+              return "Form#addNewlyCreatedToForm set " + formConfig.form.name + "#" + formMember.name + " = " + formMember.value;
+            });
+          }
+        });
+      }
+    }
+
+    return added;
+  },
+  updateMultiChoice: function updateMultiChoice(formConfig, formMember, choiceMappings) {
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace(function () {
+      return "Updating Form." + formMember.name + " with: " + JSON.stringify(choiceMappings);
+    }); // FormMember format 
+    // {"id":"country","name":"country","label":"Country","advice":null,
+    //  "value":null,"choices":{"0":"NIGERIA"},"maxLength":-1,"size":35,
+    //  "numberOfLines":1,"type":"text","referencedFormHref":null,
+    //  "referencedForm":null,"optional":false,"multiChoice":true,
+    //  "multiple":false,"displayName":"Country","required":true,
+    //  "anyFieldSet":true,"formReference":false}
+
+    var formMembersUpdate = formConfig.form.members.map(function (member, index) {
+      var _loop = function _loop(key) {
+        var memberName = member['name'];
+
+        if (memberName === key) {
+          var choices = choiceMappings[key];
+          _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace(function () {
+            return "Updating FormMember: " + memberName + " with choices: " + JSON.stringify(choices);
+          });
+          member.multiChoice = true;
+          member.choices = choices;
+          _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("FormMember Update: ", member);
+        }
+      };
+
+      for (var key in choiceMappings) {
+        _loop(key);
+      }
+
+      return member;
+    });
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("FormMembers update: ", formMembersUpdate);
+    var formUpdate = Object.assign({}, formConfig.form);
+    formUpdate.members = formMembersUpdate;
+    var formConfigUpdate = Object.assign({}, formConfig);
+    formConfigUpdate.form = formUpdate;
+    return formConfigUpdate;
+  },
 
   /**
    * Update the first argument with values from the second.
-   * Does some recursive updates for objects. Currently goes only one (1) 
-   * Does not handle arrays etc
-   * level deep.
+   * Does one level of recursive update for objects. 
+   * Does not support arrays.
    * @param {type} current
    * @param {type} update
    * @returns The first argument updated with values from the second argument.
@@ -35361,21 +36339,23 @@ var formUtil = {
 
     for (var name in update) {
       var value = current[name];
+      var valueUpdate = update[name];
       var updatedValue = void 0;
 
-      if (_typeof(value) === 'object') {
-        if (!value) {
-          value = {};
-        }
+      if (valueUpdate) {
+        var type = _typeof(valueUpdate);
 
-        updatedValue = Object.assign(Object.assign({}, value), update[name]);
-      } else {
-        updatedValue = update[name];
+        if (type === 'object') {
+          var temp = value ? Object.assign({}, value) : {};
+          updatedValue = Object.assign(temp, valueUpdate);
+        } else {
+          updatedValue = valueUpdate;
+        }
       }
 
       var logLevel = "trace"; //name === "formConfig" ? "trace" : "debug";
 
-      log.log(logLevel, "formUtil#updateObject " + name + " = " + "\nCurrent: " + log.toMessage(value) + "\nUpdated: " + log.toMessage(updatedValue));
+      _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, "formUtil#updateObject " + name + " = " + "\nCurrent: " + _log__WEBPACK_IMPORTED_MODULE_1___default.a.toMessage(value) + "\nUpdated: " + _log__WEBPACK_IMPORTED_MODULE_1___default.a.toMessage(updatedValue));
       output[name] = updatedValue;
     }
 
@@ -35392,21 +36372,32 @@ var formUtil = {
    * @returns {undefined} Does not return anything
    */
   updateValue: function updateValue(name, target, source) {
-    if (source[name]) {
+    if (source[name] !== null && source[name] !== undefined) {
       target[name] = source[name];
     }
   },
-  collectConfigData: function collectConfigData(formConfig) {
-    // buffer to collect form config data
-    var buffer = {}; // collect special fields used by the api
+  collectFormData: function collectFormData(formConfig) {
+    var collectInto = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var formMembers = formConfig.form.members;
+    formMembers.forEach(function (formMember, index) {
+      var value = formMember.value;
 
-    formUtil.updateValue('parentfid', buffer, formConfig);
-    formUtil.updateValue('fid', buffer, formConfig);
-    formUtil.updateValue('mid', buffer, formConfig);
-    formUtil.updateValue('targetOnCompletion', buffer, formConfig);
-    formUtil.updateValue('modelfields', buffer, formConfig);
-    log.trace("formUtil#collectConfigData. ", buffer);
-    return buffer;
+      if (value !== null && value !== undefined) {
+        collectInto[formMember.name] = formMember.value;
+      }
+    });
+    return collectInto;
+  },
+  collectConfigData: function collectConfigData(formConfig) {
+    var collectInto = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    // collect special fields used by the api
+    formUtil.updateValue('parentfid', collectInto, formConfig);
+    formUtil.updateValue('fid', collectInto, formConfig);
+    formUtil.updateValue('mid', collectInto, formConfig);
+    formUtil.updateValue('targetOnCompletion', collectInto, formConfig);
+    formUtil.updateValue('modelfields', collectInto, formConfig);
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("formUtil#collectConfigData. ", collectInto);
+    return collectInto;
   },
   logFormConfig: function logFormConfig(formConfig, methodName, logLevel) {
     var form = formConfig === null ? null : formConfig.form;
@@ -35420,7 +36411,7 @@ var formUtil = {
       logLevel = 'trace';
     }
 
-    log.log(logLevel, function () {
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, function () {
       return "formUtil->" + id + "-> Form. name: " + (form ? form.name : null) + ", members: " + (form ? form.memberNames : null);
     });
   },
@@ -35429,8 +36420,8 @@ var formUtil = {
       logLevel = 'debug';
     }
 
-    log.log(logLevel, function () {
-      return "formUtil->" + id + "-> Response.headers: " + (response ? log.toMessage(response.headers) : null);
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, function () {
+      return "formUtil->" + id + "-> Response.headers: " + (response ? _log__WEBPACK_IMPORTED_MODULE_1___default.a.toMessage(response.headers) : null);
     });
   },
   logEvent: function logEvent(event, id, logLevel) {
@@ -35438,12 +36429,12 @@ var formUtil = {
       logLevel = 'trace';
     }
 
-    log.log(logLevel, function () {
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, function () {
       return "formUtil->" + id + "-> Event.target: " + event.target.name + "=" + event.target.value;
     });
   }
 };
-module.exports = formUtil;
+/* harmony default export */ __webpack_exports__["default"] = (formUtil);
 
 /***/ }),
 
@@ -35547,6 +36538,136 @@ var _log = {
   }
 };
 module.exports = _log;
+
+/***/ }),
+
+/***/ "./src/main/js/referencedFormConfig.js":
+/*!*********************************************!*\
+  !*** ./src/main/js/referencedFormConfig.js ***!
+  \*********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _formUtil__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_1__);
+
+
+
+
+var referencedFormConfig = {
+  isMultiChoice: function isMultiChoice(props) {
+    var multiChoice = props.formMember.multiChoice;
+    return multiChoice === true || multiChoice === 'true';
+  },
+  getLink: function getLink(props) {
+    // Format of window.location.href = http://website.com/webform/create/Blog
+    // Format of window.location.pathname = /webform/create/Blog
+    var ref = props.formMember.referencedFormHref; // Format of expected output:
+    // /webform/api/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
+
+    var link = ref === null || ref === undefined ? null : _formUtil__WEBPACK_IMPORTED_MODULE_0__["default"].buildTargetPathForModel(props.basepath, props.action, props.formMember.name, '?parentfid=' + props.form.id + '&targetOnCompletion=' + window.location.pathname + '?fid=' + props.form.id);
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("ReferencedFormConfig#getLink: ", link);
+    return link;
+  },
+
+  /**
+   * @param {object} props with keys: form, formMember
+   * @returns object of format: 
+   * <pre>
+   * {
+   *     displayField: [true|false],
+   *     displayLink: [true|false],
+   *     link: string,
+   *     message: {
+   *         prefix: string,
+   *         value: string
+   *     }
+   * }
+   * </pre>
+   */
+  getConfig: function getConfig(props) {
+    var linkToRef = referencedFormConfig.getLink(props);
+    var hasLinkToRef = linkToRef !== undefined && linkToRef !== null;
+    var refName = props.formMember.label;
+    var multiChoice = referencedFormConfig.isMultiChoice(props);
+    var msgPrefix = multiChoice === true ? "Select " + refName + " or " : props.formMember.required ? refName + " is required. " : "";
+    var refFormMsg = hasLinkToRef ? "Create one" : "";
+    var displayField = hasLinkToRef === false || multiChoice === true;
+    var value = props.formMember.value;
+    var hasValue = value !== null && value !== "" && value !== undefined;
+    var displayLinkToRef = hasLinkToRef === true && (multiChoice === true || hasValue === false);
+    var config = {
+      displayField: displayField,
+      displayLink: displayLinkToRef,
+      link: linkToRef,
+      message: {
+        prefix: msgPrefix,
+        value: refFormMsg
+      }
+    };
+    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("ReferencedFormConfig#getConfig: ", config);
+    return config;
+  }
+};
+/* harmony default export */ __webpack_exports__["default"] = (referencedFormConfig);
+
+/***/ }),
+
+/***/ "./src/main/js/webformStage.js":
+/*!*************************************!*\
+  !*** ./src/main/js/webformStage.js ***!
+  \*************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+/**
+ * The stage signifies what action has been completed. The initial stage is <code>begin</code>.
+ * 
+ * Each subsequent stage is set just after a successful response is returned 
+ * from the api. For example from stage <code>begin</code> we send the form
+ * data for validation; on successful return from that request, the stage is 
+ * immediately set to <code>validate</code>
+ * 
+ * @type webformStage
+ */
+
+var webformStage = {
+  BEGIN: "begin",
+  VALIDATE: "validate",
+  SUBMIT: "submit",
+  SubStage: {
+    VALIDATE_SINGLE: "validateSingle",
+    DEPENDENTS: "dependents"
+  },
+  first: function first() {
+    return webformStage.BEGIN;
+  },
+  isFirst: function isFirst(stage) {
+    return stage === webformStage.first();
+  },
+  last: function last() {
+    return webformStage.SUBMIT;
+  },
+  isLast: function isLast(stage) {
+    return stage === webformStage.last();
+  },
+
+  /**
+   * @param {String} stage The stage for which the next stage is returned
+   * @returns {String} The stage after the specified stage. If the specified 
+   * stage is the last stage, returns the first stage.
+   */
+  next: function next(stage) {
+    return stage === webformStage.BEGIN ? webformStage.VALIDATE : stage === webformStage.VALIDATE ? webformStage.SUBMIT : webformStage.BEGIN;
+  }
+};
+/* harmony default export */ __webpack_exports__["default"] = (webformStage);
 
 /***/ }),
 

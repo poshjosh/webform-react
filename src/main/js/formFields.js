@@ -1,6 +1,7 @@
 'use strict';
 
 import React from 'react';
+import formUtil from "./formUtil";
 import log from "./log";
 
 const WebformInputClass = {
@@ -48,8 +49,12 @@ class SelectField extends React.Component{
 
 //Warning: Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>.
 //            selected={selected}
+        const optionId = formUtil.getIdForSelectOptionAt(this.props.formMember, index);
+
         const htm = <option 
-            key={index}
+            ref={optionId}
+            id={optionId}
+            key={optionId}
             disabled={this.props.disabled}
             name={this.props.formMember.name}
             value={index}>
@@ -68,7 +73,7 @@ class SelectField extends React.Component{
         const itemCount = Object.keys(choices).length;
 
         log.trace("SelectField#render. Choices: ", choices);
-        log.debug("SelectField#render. Choices: ", itemCount);
+        log.trace("SelectField#render. Choices: ", itemCount);
         
         const options = [];
         for(const index in choices) {
@@ -77,6 +82,8 @@ class SelectField extends React.Component{
         }
         
         const className = WebformInputClass.FORM_SELECT;
+        
+        const noSelection = formUtil.getIdForDefaultSelectOption(this.props.formMember);
 
         return (
             <select 
@@ -93,7 +100,7 @@ class SelectField extends React.Component{
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}
                 onBlur={(e) => this.props.onBlur(this.props.formMember, e)}>
 
-                <option>Select {this.props.formMember.label}</option>
+                <option ref={noSelection} id={noSelection}>Select {this.props.formMember.label}</option>
 
                 {options}
                 

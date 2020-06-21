@@ -6,13 +6,13 @@ import React from "react";
 import ReactDOM from "react-dom";
 import Form from "./form";
 
-const webform = document.getElementById('webform');
+const node = document.getElementById('webform');
 
-let webform_innerHtml;
-if(webform !== null && webform.dataset) {
-    webform_innerHtml = <Form {...(webform.dataset)} />;
+let innerHtm;
+if(node !== null && node.dataset) {
+    innerHtm = <Form {...(node.dataset)} />;
 }else{
-    webform_innerHtml = <span id="Webform.formParametersNotSet"/>;
+    innerHtm = <span id="webform-valid-node-not-found"/>;
 }
 
-ReactDOM.render(webform_innerHtml, webform);    
+ReactDOM.render(innerHtm, node);    

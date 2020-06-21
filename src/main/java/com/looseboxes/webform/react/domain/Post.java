@@ -142,7 +142,6 @@ public class Post implements Serializable {
         this.tagList = tagList;
     }
 
-
     @Override
     public int hashCode() {
         int hash = 0;
@@ -165,6 +164,6 @@ public class Post implements Serializable {
 
     @Override
     public String toString() {
-        return "com.looseboxes.webform.thym.domain.Post[ id=" + id + " ]";
+        return "Post{" + "id=" + id + ", title=" + title + ", content=" + content + ", timeCreated=" + timeCreated + ", timeModified=" + timeModified + ", image=" + image + ", blog=" + (blog==null?null:blog.getHandle()) + '}';
     }
 }
