@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  * @author hp
  */
 @Controller
-@RequestMapping(WebformConstants.ENDPOINT)
+@RequestMapping(WebformControllerConstants.BASEPATH)
 public class WebformController extends FormControllerBase{
     
     private final Logger log = LoggerFactory.getLogger(WebformController.class);
@@ -48,16 +48,17 @@ public class WebformController extends FormControllerBase{
             
             this.addApiEndpoint(model);
             
-            this.updateModelMapWithRequestParameters(model, request);
+            this.updateModelMapWithFormParamsFromRequest(model, request);
         }
         
         log.debug("#displayForm. ModelMap: {}", model);
         
-        return WebformConstants.TEMPLATE_PAGE;
+        return WebformControllerConstants.TEMPLATE_PAGE;
     }
     
     private void addApiEndpoint(ModelMap model) {
-        model.addAttribute(WebformConstants.PARAM_BASEPATH, WebformConstants.ENDPOINT);
+        model.addAttribute(WebformControllerConstants.PARAM_API_BASEPATH, WebformControllerConstants.API_BASEPATH);
+        model.addAttribute(WebformControllerConstants.PARAM_BASEPATH, WebformControllerConstants.BASEPATH);
     }
     
     private boolean isNullOrEmpty(String s) {
