@@ -17,12 +17,13 @@ log.init({logLevel: 'debug'});
 /**
  * Required props are: 
  * <ul>
- *   <li>basepath - The path to the api without the domain e.g <code>/api</code></li>
  *   <li>action - One of: [create|read|update|delete]</li>
  *   <li>modelname - The name of the model for which a form will be displayed</li>
  * </ul>
  * Optional props are: 
  * <ul>
+ *   <li>basepath - The context path to webform HTML pages e.g <code>/webform</code></li>
+ *   <li>apibasepath - The path to the api without the domain e.g <code>/api/webform</code></li>
  *   <li>
  *       asyncvalidation - If true validation will be done for each input as
  *       a value is entered.
@@ -68,7 +69,7 @@ class Form extends React.Component {
     }
     
     /**
-     * @param {object} update The new state
+     * @param {target} update The new state
      * @param {boolean} replace if state values should be entirely replaced or updated
      * @returns {undefined}
      */
@@ -103,20 +104,22 @@ class Form extends React.Component {
     printMessages(response) {
         // Sample format of both errors & messages
         // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
+        // Recently a single message was of format: ["handle: must not be blank"]
         const errors = response.entity["webform.messages.errors"];
 
         const infos = response.entity["webform.messages.infos"];
         
         const messages = { errors: null, infos: null };
         if(errors) {
-            log.debug("Errors: ", errors);
+            log.debug("Errors: ", errors); // Errors: ["handle: must not be blank"]
             messages.errors = errors;
         }
         if(infos) {
             log.debug("Infos: ", infos);
             messages.infos = infos;
         }
-        if(messages !== null) {
+        
+        if(messages !== null && messages !== undefined) {
             this.updateStates( {messages: messages}, true );
         }
     }
@@ -185,7 +188,7 @@ class Form extends React.Component {
         const action = formConfig ? formConfig.action : this.props.action;
         const modelname = formConfig ? formConfig.modelname : this.props.modelname;
         return formUtil.buildTargetPathForModel(
-                this.props.basepath, action, modelname);
+                this.props.apibasepath, action, modelname);
     }
     
     loadInitialData(messagesOnSuccess) {
@@ -639,6 +642,7 @@ class Form extends React.Component {
                 <FormMessages id="errors" ref="errors" className="error-message" messages={this.state.messages.errors}/>
                 <FormMessages id="infos" ref="infos" className="info-message" messages={this.state.messages.infos}/>
                 <FormRows {...(this.props)}
+                          errors={this.state.messages.errors}
                           form={form} 
                           values={this.state.values} 
                           disabled={this.isFormDisabled()} 
@@ -657,36 +661,68 @@ class Form extends React.Component {
 };
 
 class FormMessages extends React.Component{
-    hasMessages() {
-        // this returned either false or the actual value of this.props.messages
-//        const hasMessages = this.props.messages !== null && this.props.messages;
-        const hasMessages = this.props.messages !== null ? true : this.props.messages ? true : false;
-        log.trace("HasMessages: ", hasMessages);
-        return hasMessages;
+    hasValues(target) {
+        const result = target !== null && target ? true : false;
+        log.trace("FormMessages#hasValues: ", result);
+        return result;
     }
     render() {
         // Sample format
         // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
-        log.trace("Messages: ", this.props.messages);
-        const messageRows = this.hasMessages() === false ? null : 
+        // Recently a single message was of format: ["handle: must not be blank"]
+        log.trace("FormMessages#render messages: ", this.props.messages);
+        const hasMessages = this.hasValues(this.props.messages);
+        const messageRows = hasMessages === false ? null : 
                 Object.values(this.props.messages).map((message, index) => 
                 <div key={this.props.id + '-'+ index} className={this.props.className}>{message}</div>
         );
-        return messageRows === null ? <span></span> : <div className="message-group">{messageRows}</div>;
+        return messageRows === null ? null : <div className="message-group">{messageRows}</div>;
     }
 };
 
 class FormRows extends React.Component{
+    
+    /**
+     * A message is for a specific node if it starts with the 
+     * <code>node.id</code> or <code>node.name</code>
+     * 
+     * @param {object} messages A collection of messages
+     * Format <code>{"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}</code>
+     * @param {object} formMember The formMember whose HTML node messages will 
+     * be collected for.
+     * @param {array} collectInto Optional array to collect the formMember 
+     * specific messages into.
+     * @returns {array} An array of zero or more messages specific to the 
+     * specified formMember. Format <code>["type: must not be null"]</code>
+     */
+    collectFormMemberMessages(messages, formMember, collectInto = []) {
+        
+        if(messages !== null && messages !== undefined && messages) {
+            
+            messages.forEach((errMsg, index) => {
+
+                if(errMsg.startsWith(formMember.name)) {
+
+                    collectInto[index] = errMsg;
+                }
+            });
+        }
+        
+        return collectInto;
+    }
+    
     getValue(name) {
         return ! this.props.values ? '' : 
                ! this.props.values[name] ? '' : this.props.values[name];
     }
     
     render() {
+        
         const formRows = this.props.form.members
             .filter((formMember) => formMember.type !== 'hidden')
             .map(formMember =>
                 <FormRow {...(this.props)}
+                         errors={this.collectFormMemberMessages(this.props.errors, formMember)}
                          key={formMember.id + '-row'} 
                          ref={formMember.id + '-row'}   
                          form={this.props.form} 
@@ -799,8 +835,24 @@ class FormRow extends React.Component{
         
         const config = referencedFormConfig.getConfig(this.props);
         
+        const fieldMessageId = formUtil.getIdForFormFieldMessage(this.props.formMember);
+        
+        const prop = this.props.errors;
+        // This should be an array
+        const errors = typeof(prop) === 'object' ? Object.values(prop) : prop;
+        const hasErrors = (errors !== null && errors !== undefined && errors.length > 0);
+        const errorHtml = hasErrors === false ? null : errors
+                .map((error, index) => <div>{error}</div>
+        );
+
+        log.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtml);
+
         return (
             <div className="form-row">
+    
+                {(hasErrors === true && 
+                        <div className="formFieldMessage" id={fieldMessageId}>{errorHtml}</div>)}
+                
                 <FieldHeading formMember={this.props.formMember}/>
 
                 {(this.props.formMember.type === 'checkbox') && (' ') || (<br/>)}

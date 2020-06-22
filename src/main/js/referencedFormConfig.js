@@ -15,7 +15,7 @@ const referencedFormConfig = {
         // Format of window.location.pathname = /webform/create/Blog
         const ref = props.formMember.referencedFormHref;
         // Format of expected output:
-        // /webform/api/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
+        // [basepath]/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
         const link = ref === null || ref === undefined ? null : 
                 formUtil.buildTargetPathForModel(
                     props.basepath, props.action, props.formMember.name, 

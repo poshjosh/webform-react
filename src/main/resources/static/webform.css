@@ -11,6 +11,11 @@ a{ text-decoration:none; }
 .message-group{ margin-bottom: 0.75rem; }
 .error-message{ color:red; }
 .info-message{ color:green; }
+.formFieldMessage { color:red; font-size:1.0rem; }
+.formFieldAdvice{
+    font-size:1.0rem;
+    font-family: monospace;
+}
 
 form {
     background-color: #ddeeff;
@@ -27,11 +32,6 @@ form {
 .checkbox { width: 2rem; height: 2rem; text-align: left; }
 .form-select { width: 100%; height: 2rem; text-align: left; }
 .form-textarea { width: 100%; text-align: left; }
-
-.formFieldMessage{
-    font-size:1.0rem;
-    font-family: monospace;
-}
 
 .nowrap{ white-space:nowrap; }
 .bold{ font-weight:bold; }

@@ -2,6 +2,7 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
+import formUtil from "./formUtil";
 
 class FieldHeading extends React.Component{
     headingHtm() {
@@ -10,7 +11,8 @@ class FieldHeading extends React.Component{
                 {this.props.formMember.label}
             </label>
 
-            <MandatoryFieldTag show={this.props.formMember.required}/>
+            {(this.props.formMember.required &&
+                    <font className="red heavy-max"> * </font>)}
 
             <FieldAdvice formMember={this.props.formMember}/>
         </span>;
@@ -26,28 +28,16 @@ class FieldHeading extends React.Component{
     }
 };
 
-class MandatoryFieldTag extends React.Component{
-    render(){
-        let htm;
-        if(this.props.show === true) {
-            htm = <font className="red heavy-max"> * </font>;
-        }else{
-            htm = null;
-        }
-        return (htm);
-    }
-};
-
 class FieldAdvice extends React.Component{
     render(){
-        const id = this.props.formMember.id + '-message';
+        const fieldAdviceId = formUtil.getIdForFormFieldAdvice(this.props.formMember);
         let htm;
         if(this.props.formMember.advice) {
-            htm = <span className="formFieldMessage" id={id}>
+            htm = <span className="formFieldAdvice" id={fieldAdviceId}>
                 &emsp;({this.props.formMember.advice})
             </span>;
         }else{
-            htm = <span className="formFieldMessage" id={id}/>;
+            htm = <span className="formFieldAdvice" id={fieldAdviceId}/>;
         }
         return (htm);
     }

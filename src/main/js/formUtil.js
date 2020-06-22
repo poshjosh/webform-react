@@ -5,22 +5,11 @@ import log from "./log";
 
 const formUtil = {
 
-    getIdForSelectOptionAt: function(formMember, index) {
-        errors.requireValue("formMember", formMember);
-        errors.requireValue("index", index);
-        return formMember.id + '-' + index;
-    },
-    
-    getIdForDefaultSelectOption: function(formMember) {
-        errors.requireValue("formMember", formMember);
-        return formMember.id + '-no-selection';
-    },
-
     buildTargetPathForModel: function(basepath, action, modelname, suffix) {
         errors.requireValue("basepath", basepath);
         errors.requireValue("action", action);
         errors.requireValue("modelname", modelname);
-        var target = basepath + '/api/' + action + '/' + modelname;
+        var target = basepath + '/' + action + '/' + modelname;
         if(suffix) {
             target = target + '/' + suffix;
         }
@@ -29,7 +18,7 @@ const formUtil = {
     
     buildTargetPath: function(props, formConfig, suffix) {
         return formUtil.buildTargetPathForModel(
-                props.basepath, formConfig.action, formConfig.modelname, suffix);
+                props.apibasepath, formConfig.action, formConfig.modelname, suffix);
     },
 
     /**
@@ -194,6 +183,25 @@ const formUtil = {
         return collectInto;
     },
     
+    getIdForFormFieldAdvice: function(formMember) {
+        return formMember.id + '-advice';
+    },
+    
+    getIdForFormFieldMessage: function(formMember) {
+        return formMember.id + '-message';
+    },
+
+    getIdForSelectOptionAt: function(formMember, index) {
+        errors.requireValue("formMember", formMember);
+        errors.requireValue("index", index);
+        return formMember.id + '-' + index;
+    },
+    
+    getIdForDefaultSelectOption: function(formMember) {
+        errors.requireValue("formMember", formMember);
+        return formMember.id + '-no-selection';
+    },
+
     logFormConfig: function(formConfig, methodName, logLevel) {
         const form = formConfig === null ? null : formConfig.form;
         if(form !== null) {

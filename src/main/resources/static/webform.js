@@ -34780,12 +34780,13 @@ _log__WEBPACK_IMPORTED_MODULE_9___default.a.init({
 /**
  * Required props are: 
  * <ul>
- *   <li>basepath - The path to the api without the domain e.g <code>/api</code></li>
  *   <li>action - One of: [create|read|update|delete]</li>
  *   <li>modelname - The name of the model for which a form will be displayed</li>
  * </ul>
  * Optional props are: 
  * <ul>
+ *   <li>basepath - The context path to webform HTML pages e.g <code>/webform</code></li>
+ *   <li>apibasepath - The path to the api without the domain e.g <code>/api/webform</code></li>
  *   <li>
  *       asyncvalidation - If true validation will be done for each input as
  *       a value is entered.
@@ -34844,7 +34845,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
       };
     }
     /**
-     * @param {object} update The new state
+     * @param {target} update The new state
      * @param {boolean} replace if state values should be entirely replaced or updated
      * @returns {undefined}
      */
@@ -34894,6 +34895,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
     value: function printMessages(response) {
       // Sample format of both errors & messages
       // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
+      // Recently a single message was of format: ["handle: must not be blank"]
       var errors = response.entity["webform.messages.errors"];
       var infos = response.entity["webform.messages.infos"];
       var messages = {
@@ -34902,7 +34904,8 @@ var Form = /*#__PURE__*/function (_React$Component) {
       };
 
       if (errors) {
-        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Errors: ", errors);
+        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Errors: ", errors); // Errors: ["handle: must not be blank"]
+
         messages.errors = errors;
       }
 
@@ -34911,7 +34914,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
         messages.infos = infos;
       }
 
-      if (messages !== null) {
+      if (messages !== null && messages !== undefined) {
         this.updateStates({
           messages: messages
         }, true);
@@ -34995,7 +34998,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
       var formConfig = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.state.formConfig;
       var action = formConfig ? formConfig.action : this.props.action;
       var modelname = formConfig ? formConfig.modelname : this.props.modelname;
-      return _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPathForModel(this.props.basepath, action, modelname);
+      return _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPathForModel(this.props.apibasepath, action, modelname);
     }
   }, {
     key: "loadInitialData",
@@ -35439,6 +35442,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
         className: "info-message",
         messages: this.state.messages.infos
       }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormRows, _extends({}, this.props, {
+        errors: this.state.messages.errors,
         form: form,
         values: this.state.values,
         disabled: this.isFormDisabled(),
@@ -35474,13 +35478,11 @@ var FormMessages = /*#__PURE__*/function (_React$Component2) {
   }
 
   _createClass(FormMessages, [{
-    key: "hasMessages",
-    value: function hasMessages() {
-      // this returned either false or the actual value of this.props.messages
-      //        const hasMessages = this.props.messages !== null && this.props.messages;
-      var hasMessages = this.props.messages !== null ? true : this.props.messages ? true : false;
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("HasMessages: ", hasMessages);
-      return hasMessages;
+    key: "hasValues",
+    value: function hasValues(target) {
+      var result = target !== null && target ? true : false;
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormMessages#hasValues: ", result);
+      return result;
     }
   }, {
     key: "render",
@@ -35489,14 +35491,16 @@ var FormMessages = /*#__PURE__*/function (_React$Component2) {
 
       // Sample format
       // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Messages: ", this.props.messages);
-      var messageRows = this.hasMessages() === false ? null : Object.values(this.props.messages).map(function (message, index) {
+      // Recently a single message was of format: ["handle: must not be blank"]
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormMessages#render messages: ", this.props.messages);
+      var hasMessages = this.hasValues(this.props.messages);
+      var messageRows = hasMessages === false ? null : Object.values(this.props.messages).map(function (message, index) {
         return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
           key: _this8.props.id + '-' + index,
           className: _this8.props.className
         }, message);
       });
-      return messageRows === null ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", null) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+      return messageRows === null ? null : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "message-group"
       }, messageRows);
     }
@@ -35519,6 +35523,35 @@ var FormRows = /*#__PURE__*/function (_React$Component3) {
   }
 
   _createClass(FormRows, [{
+    key: "collectFormMemberMessages",
+
+    /**
+     * A message is for a specific node if it starts with the 
+     * <code>node.id</code> or <code>node.name</code>
+     * 
+     * @param {object} messages A collection of messages
+     * Format <code>{"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}</code>
+     * @param {object} formMember The formMember whose HTML node messages will 
+     * be collected for.
+     * @param {array} collectInto Optional array to collect the formMember 
+     * specific messages into.
+     * @returns {array} An array of zero or more messages specific to the 
+     * specified formMember. Format <code>["type: must not be null"]</code>
+     */
+    value: function collectFormMemberMessages(messages, formMember) {
+      var collectInto = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+
+      if (messages !== null && messages !== undefined && messages) {
+        messages.forEach(function (errMsg, index) {
+          if (errMsg.startsWith(formMember.name)) {
+            collectInto[index] = errMsg;
+          }
+        });
+      }
+
+      return collectInto;
+    }
+  }, {
     key: "getValue",
     value: function getValue(name) {
       return !this.props.values ? '' : !this.props.values[name] ? '' : this.props.values[name];
@@ -35532,6 +35565,7 @@ var FormRows = /*#__PURE__*/function (_React$Component3) {
         return formMember.type !== 'hidden';
       }).map(function (formMember) {
         return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormRow, _extends({}, _this9.props, {
+          errors: _this9.collectFormMemberMessages(_this9.props.errors, formMember),
           key: formMember.id + '-row',
           ref: formMember.id + '-row',
           form: _this9.props.form,
@@ -35673,9 +35707,21 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
         return "FormRow#render. Type: " + _this11.props.formMember.type + ", MultiChoice: " + multiChoice + ", Name: " + _this11.props.formMember.name + ", Value: " + _this11.props.value + ", choices: " + (choices ? Object.keys(choices).length : null);
       });
       var config = _referencedFormConfig__WEBPACK_IMPORTED_MODULE_8__["default"].getConfig(this.props);
+      var fieldMessageId = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].getIdForFormFieldMessage(this.props.formMember);
+      var prop = this.props.errors; // This should be an array
+
+      var errors = _typeof(prop) === 'object' ? Object.values(prop) : prop;
+      var hasErrors = errors !== null && errors !== undefined && errors.length > 0;
+      var errorHtml = hasErrors === false ? null : errors.map(function (error, index) {
+        return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", null, error);
+      });
+      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtml);
       return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "form-row"
-      }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFieldHeading__WEBPACK_IMPORTED_MODULE_4__["default"], {
+      }, hasErrors === true && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+        className: "formFieldMessage",
+        id: fieldMessageId
+      }, errorHtml), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFieldHeading__WEBPACK_IMPORTED_MODULE_4__["default"], {
         formMember: this.props.formMember
       }), this.props.formMember.type === 'checkbox' && ' ' || /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("br", null), config.displayField && this.getFormField(), config.displayLink && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("tt", null, config.message.prefix, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("a", {
         href: "#",
@@ -35708,6 +35754,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _formUtil__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
 
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -35735,6 +35782,7 @@ function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.g
 
 
 
+
 var FieldHeading = /*#__PURE__*/function (_React$Component) {
   _inherits(FieldHeading, _React$Component);
 
@@ -35754,9 +35802,9 @@ var FieldHeading = /*#__PURE__*/function (_React$Component) {
       }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("label", {
         className: "nowrap",
         htmlFor: this.props.formMember.id
-      }, this.props.formMember.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(MandatoryFieldTag, {
-        show: this.props.formMember.required
-      }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FieldAdvice, {
+      }, this.props.formMember.label), this.props.formMember.required && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("font", {
+        className: "red heavy-max"
+      }, " * "), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FieldAdvice, {
         formMember: this.props.formMember
       }));
     }
@@ -35780,65 +35828,32 @@ var FieldHeading = /*#__PURE__*/function (_React$Component) {
 
 ;
 
-var MandatoryFieldTag = /*#__PURE__*/function (_React$Component2) {
-  _inherits(MandatoryFieldTag, _React$Component2);
+var FieldAdvice = /*#__PURE__*/function (_React$Component2) {
+  _inherits(FieldAdvice, _React$Component2);
 
-  var _super2 = _createSuper(MandatoryFieldTag);
-
-  function MandatoryFieldTag() {
-    _classCallCheck(this, MandatoryFieldTag);
-
-    return _super2.apply(this, arguments);
-  }
-
-  _createClass(MandatoryFieldTag, [{
-    key: "render",
-    value: function render() {
-      var htm;
-
-      if (this.props.show === true) {
-        htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("font", {
-          className: "red heavy-max"
-        }, " * ");
-      } else {
-        htm = null;
-      }
-
-      return htm;
-    }
-  }]);
-
-  return MandatoryFieldTag;
-}(react__WEBPACK_IMPORTED_MODULE_0___default.a.Component);
-
-;
-
-var FieldAdvice = /*#__PURE__*/function (_React$Component3) {
-  _inherits(FieldAdvice, _React$Component3);
-
-  var _super3 = _createSuper(FieldAdvice);
+  var _super2 = _createSuper(FieldAdvice);
 
   function FieldAdvice() {
     _classCallCheck(this, FieldAdvice);
 
-    return _super3.apply(this, arguments);
+    return _super2.apply(this, arguments);
   }
 
   _createClass(FieldAdvice, [{
     key: "render",
     value: function render() {
-      var id = this.props.formMember.id + '-message';
+      var fieldAdviceId = _formUtil__WEBPACK_IMPORTED_MODULE_2__["default"].getIdForFormFieldAdvice(this.props.formMember);
       var htm;
 
       if (this.props.formMember.advice) {
         htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
-          className: "formFieldMessage",
-          id: id
+          className: "formFieldAdvice",
+          id: fieldAdviceId
         }, "\u2003(", this.props.formMember.advice, ")");
       } else {
         htm = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("span", {
-          className: "formFieldMessage",
-          id: id
+          className: "formFieldAdvice",
+          id: fieldAdviceId
         });
       }
 
@@ -36214,20 +36229,11 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
 
 var formUtil = {
-  getIdForSelectOptionAt: function getIdForSelectOptionAt(formMember, index) {
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("index", index);
-    return formMember.id + '-' + index;
-  },
-  getIdForDefaultSelectOption: function getIdForDefaultSelectOption(formMember) {
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
-    return formMember.id + '-no-selection';
-  },
   buildTargetPathForModel: function buildTargetPathForModel(basepath, action, modelname, suffix) {
     _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("basepath", basepath);
     _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("action", action);
     _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("modelname", modelname);
-    var target = basepath + '/api/' + action + '/' + modelname;
+    var target = basepath + '/' + action + '/' + modelname;
 
     if (suffix) {
       target = target + '/' + suffix;
@@ -36236,7 +36242,7 @@ var formUtil = {
     return target;
   },
   buildTargetPath: function buildTargetPath(props, formConfig, suffix) {
-    return formUtil.buildTargetPathForModel(props.basepath, formConfig.action, formConfig.modelname, suffix);
+    return formUtil.buildTargetPathForModel(props.apibasepath, formConfig.action, formConfig.modelname, suffix);
   },
 
   /**
@@ -36398,6 +36404,21 @@ var formUtil = {
     formUtil.updateValue('modelfields', collectInto, formConfig);
     _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("formUtil#collectConfigData. ", collectInto);
     return collectInto;
+  },
+  getIdForFormFieldAdvice: function getIdForFormFieldAdvice(formMember) {
+    return formMember.id + '-advice';
+  },
+  getIdForFormFieldMessage: function getIdForFormFieldMessage(formMember) {
+    return formMember.id + '-message';
+  },
+  getIdForSelectOptionAt: function getIdForSelectOptionAt(formMember, index) {
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("index", index);
+    return formMember.id + '-' + index;
+  },
+  getIdForDefaultSelectOption: function getIdForDefaultSelectOption(formMember) {
+    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
+    return formMember.id + '-no-selection';
   },
   logFormConfig: function logFormConfig(formConfig, methodName, logLevel) {
     var form = formConfig === null ? null : formConfig.form;
@@ -36566,7 +36587,7 @@ var referencedFormConfig = {
     // Format of window.location.href = http://website.com/webform/create/Blog
     // Format of window.location.pathname = /webform/create/Blog
     var ref = props.formMember.referencedFormHref; // Format of expected output:
-    // /webform/api/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
+    // [basepath]/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
 
     var link = ref === null || ref === undefined ? null : _formUtil__WEBPACK_IMPORTED_MODULE_0__["default"].buildTargetPathForModel(props.basepath, props.action, props.formMember.name, '?parentfid=' + props.form.id + '&targetOnCompletion=' + window.location.pathname + '?fid=' + props.form.id);
     _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("ReferencedFormConfig#getLink: ", link);

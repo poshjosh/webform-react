@@ -9,11 +9,11 @@
     <body>
         <h3>Webform + React - Demo Application</h3>
         
-        <th:block th:if="${basepath != null && action != null && modelname != null}">
+        <th:block th:if="${action != null && modelname != null}">
             <div th:id="webform" 
-                 data-th-attr="data-basepath=${basepath}, data-action=${action}, data-modelname=${modelname}, data-asyncvalidation=true"/>
+                 data-th-attr="data-action=${action}, data-modelname=${modelname}, data-basepath=${basepath}, data-apibasepath=${apibasepath}, data-asyncvalidation=true"/>
         </th:block>
-        <th:block th:unless="${basepath != null && action != null && modelname != null}">
+        <th:block th:unless="${action != null && modelname != null}">
             <p>
                 This application demonstrates the versatility of Webforms
                 with a React based front end. Using Webforms, forms are
