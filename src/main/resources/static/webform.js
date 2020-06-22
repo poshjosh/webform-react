@@ -36587,9 +36587,9 @@ var referencedFormConfig = {
     // Format of window.location.href = http://website.com/webform/create/Blog
     // Format of window.location.pathname = /webform/create/Blog
     var ref = props.formMember.referencedFormHref; // Format of expected output:
-    // [basepath]/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
+    // [apibasepath]/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
 
-    var link = ref === null || ref === undefined ? null : _formUtil__WEBPACK_IMPORTED_MODULE_0__["default"].buildTargetPathForModel(props.basepath, props.action, props.formMember.name, '?parentfid=' + props.form.id + '&targetOnCompletion=' + window.location.pathname + '?fid=' + props.form.id);
+    var link = ref === null || ref === undefined ? null : _formUtil__WEBPACK_IMPORTED_MODULE_0__["default"].buildTargetPathForModel(props.apibasepath, props.action, props.formMember.name, '?parentfid=' + props.form.id + '&targetOnCompletion=' + window.location.pathname + '?fid=' + props.form.id);
     _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("ReferencedFormConfig#getLink: ", link);
     return link;
   },
