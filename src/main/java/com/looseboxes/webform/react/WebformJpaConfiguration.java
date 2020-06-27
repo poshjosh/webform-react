@@ -3,7 +3,7 @@ package com.looseboxes.webform.react;
 import com.bc.jpa.dao.JpaObjectFactory;
 import com.bc.jpa.dao.JpaObjectFactoryBase;
 import com.bc.jpa.dao.sql.SQLDateTimePatterns;
-import com.looseboxes.webform.JpaConfiguration;
+import com.looseboxes.webform.config.JpaConfiguration;
 import javax.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
