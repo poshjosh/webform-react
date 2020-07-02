@@ -2,7 +2,6 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
-import queryString from "query-string";
 import client from "./client";
 import FieldHeading from "./formFieldHeading";
 import {
@@ -177,8 +176,8 @@ class Form extends React.Component {
         });
     }
 
-    getInitialData(path, messagesOnSuccess) {
-        log.trace("Form#getInitialData. GET ", path);
+    loadInitialData(path, messagesOnSuccess) {
+        log.trace("Form#loadInitialData. GET ", path);
         this.getRequest(path,
             (response) => this.onSuccessInitialLoad(response, path, messagesOnSuccess),
             (response) => this.onError(response, path));
@@ -191,9 +190,9 @@ class Form extends React.Component {
                 this.props.apibasepath, action, modelname);
     }
     
-    loadInitialData(messagesOnSuccess) {
-        const path = this.buildDefaultPath();
-        this.getInitialData(path, messagesOnSuccess);
+    loadInitialDataForConfig(formConfig = this.state.formConfig, messagesOnSuccess) {
+        const path = this.buildDefaultPath(formConfig);
+        this.loadInitialData(path, messagesOnSuccess);
     }
     
     onBeginReferencedForm(event, path) {
@@ -208,11 +207,11 @@ class Form extends React.Component {
         const replaceEntirely = true;
         this.updateStates({ pendingFormConfig: this.state.formConfig }, replaceEntirely);
         
-        this.getInitialData(path);
+        this.loadInitialData(path);
     }
 
     componentDidMount() {
-        this.loadInitialData();
+        this.loadInitialDataForConfig();
     }
 
     buildFormOutput() {
@@ -452,57 +451,31 @@ class Form extends React.Component {
         return lastStage;
     }
     
-    nextFormConfig(response) {
-        // Use existing form config if we are at the last stage
-        // This is because, at the last stage, the api does not return a Form
-        // object but conforms to REST standards by returning: the domain object 
-        // that was either CREATED, READ or UPDATED respectively and for DELETE
-        // returning no body but HTTP status.
-        const formConfig = this.isLastStage() === true ? 
-                this.state.formConfig : response.entity;
-        return formConfig;
-    }
-    
-    /**
-     * Return {Form.state.pendingFormConfig} if it matches the formid paramter
-     * of {Form.state.formConfig.targetOnCompletion}.
-     * 
-     * Parse the query part of {Form.state.formConfig.targetOnCompletion} and 
-     * check if the <code>fid</code> parameter is equal to the <code>fid</code> 
-     * property of {Form.state.pendingFormConfig}. If both are equal, return 
-     * the {Form.state.pendingFormConfig}, otherwise set the 
-     * {Form.state.pendingFormConfig} to <code>null</code> and return <code>null</code>.
-     * @returns {Form.state.pendingFormConfig}
-     */
-    reconcileTargetWithPendingFormConfig() {
-        // Format of targetOnCompletion: /webform/create/post?fid=form172d18039a7
-        const targetOnCompletion = this.state.formConfig.targetOnCompletion;
-        const pendingConfig = this.state.pendingFormConfig;
-        var result = null;
-        if(targetOnCompletion !== null && targetOnCompletion !== undefined
-                && pendingConfig !== null
-                && pendingConfig !== undefined) {
-            const pos = targetOnCompletion.indexOf("?");
-            if(pos !== -1) {
-                const len = targetOnCompletion.length;
-                const query = targetOnCompletion.substring(pos, len);
-                const parsed = queryString.parse(query);
-                if(parsed.fid === pendingConfig.fid) {
-                    result = pendingConfig;
-                }
-            }
-        }
-        log.trace(() => "Output: " + result + ", target on completion: " + 
-                targetOnCompletion + ", pendingFormConfig.fid: " + 
-                (pendingConfig ? pendingConfig.fid : null));
-        return result;
-    }
-    
     getSuccessMessage(msg) {
         if( ! msg) {
             msg = "Success";
         }
         return { errors: null, infos: {"0": msg} };
+    }
+    
+    isApiPath(path) {
+        return path !== null && path !== undefined && 
+                    path.indexOf(this.props.apibasepath) !== -1;
+    }
+    
+    pathMatchesFormConfig(path, formConfig = this.state.formConfig) {
+        let result;
+        if(path === null || path === undefined ||
+                formConfig === null || formConfig === undefined) {
+            result = false;
+        }else{
+            const rhs = formUtil.buildTargetPathForModel(
+                    this.props.basepath, formConfig.action, "");
+            result = path.indexOf(rhs) === 0;
+            log.debug(() => "Form#pathMatchesFormConfig " + 
+                    result + ", lhs: " + path + ", rhs: " + rhs);
+        }
+        return result;
     }
     
     onSuccessSubmit(response, target) {
@@ -511,77 +484,111 @@ class Form extends React.Component {
         
         const lastStage = (this.isLastStage() === true);
         
+        const formConfig = response.entity;
+
         if(lastStage) {
             
-            log.trace("Last stage successful: ", this.state.formConfig);
+            const targetOnCompletion = formConfig.targetOnCompletion;
             
-            const pendingFormConfig = this.reconcileTargetWithPendingFormConfig();
-            
-            ///////////////////////////// NOTE /////////////////////////////
-            // If there is a Form.state.pendingFormConfig we load it.
-            // But we first load initial data from the api, again. When we
-            // did not load initial data at this point SESSION WAS LOST
-            //
-            if(pendingFormConfig !== null && pendingFormConfig !== undefined) {
+            log.trace("Form#onSuccessSubmit lastState targetOnCompletion: ", targetOnCompletion);
 
-                // Add the newly created entity to the formConfig
-                formUtil.addNewlyCreatedToForm(response, pendingFormConfig);
+            // targetOnCompletion=/webform/create/post?fid=form172f81dc203
+            if(targetOnCompletion === null || targetOnCompletion === undefined){
                 
-                // This contains web page path: /webform/create/post?fid=form172d4d3fa82
-                // However, we want api path: /webform/api/create/post?fid=form172d4d3fa82
-                // So we append the query part of this path to the path 
-                // containing the api path.
-                // 
-//                const path = this.state.formConfig.targetOnCompletion;
-                const base = this.buildDefaultPath(pendingFormConfig);
-                const path = base + '?fid=' + pendingFormConfig.fid;
-
-                const onSuccess = (response) => {
-                    
-                    const formConfig = response.entity;
-                    
-                    // for collecting initial form values
-                    var formValues = formUtil.collectFormData(formConfig);
-                    
-                    formValues = formUtil.collectFormData(pendingFormConfig, formValues);
-                    
-                    log.debug("Form#onSuccessSubmit form values: ", formValues);
-                    
-                    const stateUpdate = this.getRefreshedState(
-                            {}, formValues, this.getSuccessMessage());
-                    
-                    stateUpdate.formConfig = formConfig;
-                    stateUpdate.pendingFormConfig = null;
-    
-                    // This kind of transition requires replacing the entire
-                    // FormConfig with the update.
-                    //
-                    const replaceEntirely = true;
-                    this.updateStates(stateUpdate, replaceEntirely);
-                };
-                
-                this.getRequest(path, onSuccess);
+                this.loadInitialDataForConfig(formConfig, this.getSuccessMessage());
                 
             }else{
                 
-                this.loadInitialData(this.getSuccessMessage());
-            }
+                if(this.pathMatchesFormConfig(targetOnCompletion, formConfig) === false) {
+                    
+                    if(this.isApiPath(targetOnCompletion)) {
+                        
+                        log.debug("Form#onSuccessSubmit Returning to: " + targetOnCompletion);
+
+                        this.loadInitialData(targetOnCompletion, this.getSuccessMessage());
+                        
+                    }else{
+                
+                        log.debug("Form#onSuccessSubmit Relocating to: " + targetOnCompletion);
+
+                        window.location = targetOnCompletion;
+                    }
+                }else{
+                    
+                    ///////////////////////////// NOTE /////////////////////////////
+                    // If there is a Form.state.pendingFormConfig and it has a
+                    // formId that matches that specified in targetOnCompletion,
+                    // we load it. Before we load it, we load initial data from
+                    // the api, again. When we did not load initial data at this 
+                    // point SESSION WAS LOST
+                    //
+                    const pendingFormConfig = this.state.pendingFormConfig;
+
+                    const usePending = formUtil.hasMatchingFormId(pendingFormConfig, targetOnCompletion);
+
+                    log.trace(() => "Form#onSuccessSubmit Use pending FormConfig: " + 
+                            usePending + ", target on completion: " + 
+                            targetOnCompletion + ", pendingFormConfig.fid: " + 
+                            (pendingFormConfig ? pendingFormConfig.fid : null));
+
+                    if(usePending === false) {
+                        
+                        this.loadInitialDataForConfig(formConfig, this.getSuccessMessage());
+                        
+                    }else{    
+
+                        // Add the newly created entity to the formConfig
+                        formUtil.addNewlyCreatedToForm(response, pendingFormConfig);
+
+                        // This contains web page path: /webform/create/post?fid=form172d4d3fa82
+                        // However, we want api path: /api/webform/create/post?fid=form172d4d3fa82
+                        // So we do some formatting
+                        // 
+//                        const path = this.state.formConfig.targetOnCompletion;
+                        const base = this.buildDefaultPath(pendingFormConfig);
+                        const path = base + '?fid=' + pendingFormConfig.fid;
+
+                        const onSuccess = (response) => {
+
+                            const formConfig = response.entity;
+
+                            // for collecting initial form values
+                            var formValues = formUtil.collectFormData(formConfig);
+
+                            formValues = formUtil.collectFormData(pendingFormConfig, formValues);
+
+                            log.debug("Form#onSuccessSubmit form values: ", formValues);
+
+                            const stateUpdate = this.getRefreshedState(
+                                    {}, formValues, this.getSuccessMessage());
+
+                            stateUpdate.formConfig = formConfig;
+                            stateUpdate.pendingFormConfig = null;
+
+                            // This kind of transition requires replacing the entire
+                            // FormConfig with the update.
+                            //
+                            const replaceEntirely = true;
+                            this.updateStates(stateUpdate, replaceEntirely);
+                        };
+
+                        this.getRequest(path, onSuccess);
+                    }
+                }
+            }            
         }else{
             
             // Move to the first stage, to prepare for form inputs all over agin
             const nextStage = lastStage ? webformStage.BEGIN : this.nextStage();
-
-            const formConfig = this.nextFormConfig(response);
 
             this.updateStates({
                 context: { stage: nextStage },
                 formConfig: formConfig,
                 messages: { errors: null, infos: null }
             });
-
-            const form = formConfig.form;
-            formUtil.logForm(form, "Form#onSuccessSubmit");
         }
+        
+        formUtil.logFormConfig(formConfig, "Form#onSuccessSubmit");
     }
     
     onSubmit(event) {
@@ -610,7 +617,7 @@ class Form extends React.Component {
         const result = (stage === webformStage.VALIDATE || action === "read");
         log.trace(() =>
                 "Form#isFormDisabled " + result + ", State.context: " +
-                JSON.stringify(this.state.context));
+                log.toMessage(this.state.context));
         return result;
     }
 

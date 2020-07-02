@@ -34725,17 +34725,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js");
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var query_string__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! query-string */ "./node_modules/query-string/index.js");
-/* harmony import */ var query_string__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(query_string__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _client__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./client */ "./src/main/js/client.js");
-/* harmony import */ var _client__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_client__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var _formFieldHeading__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./formFieldHeading */ "./src/main/js/formFieldHeading.js");
-/* harmony import */ var _formFields__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./formFields */ "./src/main/js/formFields.js");
-/* harmony import */ var _formUtil__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
-/* harmony import */ var _webformStage__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./webformStage */ "./src/main/js/webformStage.js");
-/* harmony import */ var _referencedFormConfig__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./referencedFormConfig */ "./src/main/js/referencedFormConfig.js");
-/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
-/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_9___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_9__);
+/* harmony import */ var _client__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./client */ "./src/main/js/client.js");
+/* harmony import */ var _client__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_client__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _formFieldHeading__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./formFieldHeading */ "./src/main/js/formFieldHeading.js");
+/* harmony import */ var _formFields__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./formFields */ "./src/main/js/formFields.js");
+/* harmony import */ var _formUtil__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./formUtil */ "./src/main/js/formUtil.js");
+/* harmony import */ var _webformStage__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./webformStage */ "./src/main/js/webformStage.js");
+/* harmony import */ var _referencedFormConfig__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./referencedFormConfig */ "./src/main/js/referencedFormConfig.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_8___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_8__);
 
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -34773,8 +34771,7 @@ function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.g
 
 
 
-
-_log__WEBPACK_IMPORTED_MODULE_9___default.a.init({
+_log__WEBPACK_IMPORTED_MODULE_8___default.a.init({
   logLevel: 'debug'
 });
 /**
@@ -34814,7 +34811,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
     _classCallCheck(this, Form);
 
     _this = _super.call(this, props);
-    _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#<init>. Props: ", _this.props);
+    _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#<init>. Props: ", _this.props);
     _this.state = _this.getInitialState();
     _this.onChange = _this.onChange.bind(_assertThisInitialized(_this));
     _this.onClick = _this.onClick.bind(_assertThisInitialized(_this));
@@ -34833,7 +34830,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
     value: function getInitialState() {
       return {
         context: {
-          stage: _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN
+          stage: _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].BEGIN
         },
         formConfig: null,
         pendingFormConfig: null,
@@ -34854,12 +34851,12 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "updateStates",
     value: function updateStates(update) {
       var replace = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#updateStates. Update: ", update);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#updateStates. Update: ", update);
       this.setState(function (state, props) {
         if (replace) {
           return update;
         } else {
-          return _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].updateObject(state, update);
+          return _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].updateObject(state, update);
         }
       });
     }
@@ -34887,7 +34884,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
   }, {
     key: "onError",
     value: function onError(response, path) {
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, "Form#onError");
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logResponse(response, "Form#onError");
       this.printMessages(response);
     }
   }, {
@@ -34904,13 +34901,13 @@ var Form = /*#__PURE__*/function (_React$Component) {
       };
 
       if (errors) {
-        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Errors: ", errors); // Errors: ["handle: must not be blank"]
+        _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Errors: ", errors); // Errors: ["handle: must not be blank"]
 
         messages.errors = errors;
       }
 
       if (infos) {
-        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Infos: ", infos);
+        _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Infos: ", infos);
         messages.infos = infos;
       }
 
@@ -34932,7 +34929,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
 
       var result = {
         context: {
-          stage: _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN
+          stage: _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].BEGIN
         },
         formConfig: formConfig,
         values: formValues,
@@ -34943,17 +34940,17 @@ var Form = /*#__PURE__*/function (_React$Component) {
   }, {
     key: "refreshStates",
     value: function refreshStates(formConfig, formValues, messages) {
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logFormConfig(formConfig, "Form#refreshStates");
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#refreshStates FormValues: ", formValues);
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logFormConfig(formConfig, "Form#refreshStates");
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#refreshStates FormValues: ", formValues);
       var stateUpdate = this.getRefreshedState(formConfig, formValues, messages);
       this.updateStates(stateUpdate);
     }
   }, {
     key: "onSuccessInitialLoad",
     value: function onSuccessInitialLoad(response, path, messages) {
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, "Form#onSuccessInitialLoad");
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logResponse(response, "Form#onSuccessInitialLoad");
       var formConfig = response.entity;
-      var formValues = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectFormData(formConfig);
+      var formValues = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].collectFormData(formConfig);
       this.refreshStates(formConfig, formValues, messages);
     }
   }, {
@@ -34971,21 +34968,21 @@ var Form = /*#__PURE__*/function (_React$Component) {
         method: 'GET',
         path: path
       };
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#getRequest, submitting: " + clientConfig.path);
-      _client__WEBPACK_IMPORTED_MODULE_3___default()(clientConfig).done(function (response) {
-        _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#getRequest success: " + path);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#getRequest, submitting: " + clientConfig.path);
+      _client__WEBPACK_IMPORTED_MODULE_2___default()(clientConfig).done(function (response) {
+        _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#getRequest success: " + path);
         onSuccess(response);
       }, function (response) {
-        _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#getRequest error: " + path);
+        _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#getRequest error: " + path);
         onError(response);
       });
     }
   }, {
-    key: "getInitialData",
-    value: function getInitialData(path, messagesOnSuccess) {
+    key: "loadInitialData",
+    value: function loadInitialData(path, messagesOnSuccess) {
       var _this3 = this;
 
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#getInitialData. GET ", path);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#loadInitialData. GET ", path);
       this.getRequest(path, function (response) {
         return _this3.onSuccessInitialLoad(response, path, messagesOnSuccess);
       }, function (response) {
@@ -34998,19 +34995,21 @@ var Form = /*#__PURE__*/function (_React$Component) {
       var formConfig = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.state.formConfig;
       var action = formConfig ? formConfig.action : this.props.action;
       var modelname = formConfig ? formConfig.modelname : this.props.modelname;
-      return _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPathForModel(this.props.apibasepath, action, modelname);
+      return _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].buildTargetPathForModel(this.props.apibasepath, action, modelname);
     }
   }, {
-    key: "loadInitialData",
-    value: function loadInitialData(messagesOnSuccess) {
-      var path = this.buildDefaultPath();
-      this.getInitialData(path, messagesOnSuccess);
+    key: "loadInitialDataForConfig",
+    value: function loadInitialDataForConfig() {
+      var formConfig = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.state.formConfig;
+      var messagesOnSuccess = arguments.length > 1 ? arguments[1] : undefined;
+      var path = this.buildDefaultPath(formConfig);
+      this.loadInitialData(path, messagesOnSuccess);
     }
   }, {
     key: "onBeginReferencedForm",
     value: function onBeginReferencedForm(event, path) {
       event.preventDefault();
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#onBeginReferencedForm, path: ", path); // This kind of transition requires replacing the entire
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#onBeginReferencedForm, path: ", path); // This kind of transition requires replacing the entire
       // FormConfig with the update.
       //
 
@@ -35018,23 +35017,23 @@ var Form = /*#__PURE__*/function (_React$Component) {
       this.updateStates({
         pendingFormConfig: this.state.formConfig
       }, replaceEntirely);
-      this.getInitialData(path);
+      this.loadInitialData(path);
     }
   }, {
     key: "componentDidMount",
     value: function componentDidMount() {
-      this.loadInitialData();
+      this.loadInitialDataForConfig();
     }
   }, {
     key: "buildFormOutput",
     value: function buildFormOutput() {
       // buffer to collect form data
-      var formData = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectConfigData(this.state.formConfig);
+      var formData = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].collectConfigData(this.state.formConfig);
       var source = this.state.values;
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildFormOutput. Values: ", source); // collect form values
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#buildFormOutput. Values: ", source); // collect form values
 
       var result = Object.assign(formData, source);
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildFormOutput. Output: ", result);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#buildFormOutput. Output: ", result);
       return result;
     }
   }, {
@@ -35063,21 +35062,21 @@ var Form = /*#__PURE__*/function (_React$Component) {
       var suffix;
 
       if (eventName === "onClick") {
-        suffix = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].SubStage.DEPENDENTS;
+        suffix = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].SubStage.DEPENDENTS;
       } else if (eventName === "onBlur") {
-        suffix = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].SubStage.VALIDATE_SINGLE;
+        suffix = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].SubStage.VALIDATE_SINGLE;
       } else {
         suffix = eventName;
       }
 
       var formConfig = this.state.formConfig;
-      var path = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPath(this.props, formConfig, suffix);
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildClientConfigForFormMember. POST ", path);
-      var entity = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectConfigData(formConfig);
+      var path = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].buildTargetPath(this.props, formConfig, suffix);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#buildClientConfigForFormMember. POST ", path);
+      var entity = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].collectConfigData(formConfig);
       entity.propertyName = name;
       entity.propertyValue = value;
       entity[name] = value;
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#buildClientConfigForFormMember. data: ", entity);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#buildClientConfigForFormMember. data: ", entity);
       var result = this.newFormDataClientConfig(path, entity);
       return result;
     }
@@ -35090,12 +35089,12 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "buildClientConfigForForm",
     value: function buildClientConfigForForm(eventName) {
       var formConfig = this.state.formConfig;
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logFormConfig(formConfig, eventName);
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logFormConfig(formConfig, eventName);
       var currStage = this.state.context.stage;
-      var nextStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].next(currStage);
-      var suffix = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].isFirst(nextStage) ? null : nextStage;
-      var path = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].buildTargetPath(this.props, formConfig, suffix);
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+      var nextStage = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].next(currStage);
+      var suffix = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].isFirst(nextStage) ? null : nextStage;
+      var path = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].buildTargetPath(this.props, formConfig, suffix);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace(function () {
         return "Form#buildClientConfigForForm. Current stage: " + currStage + ", Next stage: " + nextStage + ", Target: " + path;
       });
       var entity = this.buildFormOutput();
@@ -35136,14 +35135,14 @@ var Form = /*#__PURE__*/function (_React$Component) {
       // https://github.com/facebook/react/issues/13477#issuecomment-565609467
       // 
       //        event.preventDefault();
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logEvent(event, eventName);
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logEvent(event, eventName);
       var eventTarget = event.target; // HTML option tags do not contain a name, the name is specified at
       // the parent select tag. However it is the option that receives events
       // So in such cases we extract the name from the formMember
 
       var name = eventTarget.name ? eventTarget.name : formMember.name;
       var value = this.getEventTargetValue(event, formMember);
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace(function () {
         return eventName + " " + name + " = " + value;
       }); // onChange event is not sent to the server
 
@@ -35153,20 +35152,20 @@ var Form = /*#__PURE__*/function (_React$Component) {
       } // Other events e.g onClick, onBlur are only sent if we are at first stage
 
 
-      var firstStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].isFirst(this.state.context.stage);
+      var firstStage = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].isFirst(this.state.context.stage);
 
       if (firstStage !== true) {
         return;
       }
 
       var clientConfig = this.buildClientConfig(eventName, name, value);
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#handleEvent, submitting: " + clientConfig.path + "\n", clientConfig);
-      _client__WEBPACK_IMPORTED_MODULE_3___default()(clientConfig).done(function (response) {
-        _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, eventName);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#handleEvent, submitting: " + clientConfig.path + "\n", clientConfig);
+      _client__WEBPACK_IMPORTED_MODULE_2___default()(clientConfig).done(function (response) {
+        _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logResponse(response, eventName);
 
         if ("onClick" === eventName) {
           var choices = response.entity;
-          var formConfig = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].updateMultiChoice(_this4.state.formConfig, formMember, choices);
+          var formConfig = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].updateMultiChoice(_this4.state.formConfig, formMember, choices);
 
           _this4.updateFormConfig(formConfig);
         } else {
@@ -35185,10 +35184,10 @@ var Form = /*#__PURE__*/function (_React$Component) {
         var targetValue = this.getEventTargetValue(event, formMember);
 
         if (targetValue !== null && targetValue !== undefined) {
-          var idNoSelection = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].getIdForDefaultSelectOption(formMember);
+          var idNoSelection = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].getIdForDefaultSelectOption(formMember);
           var noSelection = document.getElementById(idNoSelection).value;
           accepted = targetValue !== noSelection;
-          _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+          _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace(function () {
             return "Form#isEventAccepted accepted: " + accepted + ", target.value: " + targetValue + ", default slection: " + noSelection;
           }); // Default select has value Select [name] ... Value is of type String
           // Other selections each have value of type number
@@ -35202,7 +35201,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
         accepted = true;
       }
 
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Form#isEventAccepted. accepted: " + accepted + ", FormMember: " + formMember.name);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#isEventAccepted. accepted: " + accepted + ", FormMember: " + formMember.name);
       return accepted;
     }
   }, {
@@ -35236,64 +35235,14 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "nextStage",
     value: function nextStage() {
       var currStage = this.state.context.stage;
-      var nextStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].next(currStage);
+      var nextStage = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].next(currStage);
       return nextStage;
     }
   }, {
     key: "isLastStage",
     value: function isLastStage() {
-      var lastStage = _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].isLast(this.nextStage());
+      var lastStage = _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].isLast(this.nextStage());
       return lastStage;
-    }
-  }, {
-    key: "nextFormConfig",
-    value: function nextFormConfig(response) {
-      // Use existing form config if we are at the last stage
-      // This is because, at the last stage, the api does not return a Form
-      // object but conforms to REST standards by returning: the domain object 
-      // that was either CREATED, READ or UPDATED respectively and for DELETE
-      // returning no body but HTTP status.
-      var formConfig = this.isLastStage() === true ? this.state.formConfig : response.entity;
-      return formConfig;
-    }
-    /**
-     * Return {Form.state.pendingFormConfig} if it matches the formid paramter
-     * of {Form.state.formConfig.targetOnCompletion}.
-     * 
-     * Parse the query part of {Form.state.formConfig.targetOnCompletion} and 
-     * check if the <code>fid</code> parameter is equal to the <code>fid</code> 
-     * property of {Form.state.pendingFormConfig}. If both are equal, return 
-     * the {Form.state.pendingFormConfig}, otherwise set the 
-     * {Form.state.pendingFormConfig} to <code>null</code> and return <code>null</code>.
-     * @returns {Form.state.pendingFormConfig}
-     */
-
-  }, {
-    key: "reconcileTargetWithPendingFormConfig",
-    value: function reconcileTargetWithPendingFormConfig() {
-      // Format of targetOnCompletion: /webform/create/post?fid=form172d18039a7
-      var targetOnCompletion = this.state.formConfig.targetOnCompletion;
-      var pendingConfig = this.state.pendingFormConfig;
-      var result = null;
-
-      if (targetOnCompletion !== null && targetOnCompletion !== undefined && pendingConfig !== null && pendingConfig !== undefined) {
-        var pos = targetOnCompletion.indexOf("?");
-
-        if (pos !== -1) {
-          var len = targetOnCompletion.length;
-          var query = targetOnCompletion.substring(pos, len);
-          var parsed = query_string__WEBPACK_IMPORTED_MODULE_2___default.a.parse(query);
-
-          if (parsed.fid === pendingConfig.fid) {
-            result = pendingConfig;
-          }
-        }
-      }
-
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
-        return "Output: " + result + ", target on completion: " + targetOnCompletion + ", pendingFormConfig.fid: " + (pendingConfig ? pendingConfig.fid : null);
-      });
-      return result;
     }
   }, {
     key: "getSuccessMessage",
@@ -35310,60 +35259,105 @@ var Form = /*#__PURE__*/function (_React$Component) {
       };
     }
   }, {
+    key: "isApiPath",
+    value: function isApiPath(path) {
+      return path !== null && path !== undefined && path.indexOf(this.props.apibasepath) !== -1;
+    }
+  }, {
+    key: "pathMatchesFormConfig",
+    value: function pathMatchesFormConfig(path) {
+      var formConfig = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.state.formConfig;
+      var result;
+
+      if (path === null || path === undefined || formConfig === null || formConfig === undefined) {
+        result = false;
+      } else {
+        var rhs = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].buildTargetPathForModel(this.props.basepath, formConfig.action, "");
+        result = path.indexOf(rhs) === 0;
+        _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug(function () {
+          return "Form#pathMatchesFormConfig " + result + ", lhs: " + path + ", rhs: " + rhs;
+        });
+      }
+
+      return result;
+    }
+  }, {
     key: "onSuccessSubmit",
     value: function onSuccessSubmit(response, target) {
       var _this5 = this;
 
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logResponse(response, "Form#onSuccessSubmit");
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logResponse(response, "Form#onSuccessSubmit");
       var lastStage = this.isLastStage() === true;
+      var formConfig = response.entity;
 
       if (lastStage) {
-        _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("Last stage successful: ", this.state.formConfig);
-        var pendingFormConfig = this.reconcileTargetWithPendingFormConfig(); ///////////////////////////// NOTE /////////////////////////////
-        // If there is a Form.state.pendingFormConfig we load it.
-        // But we first load initial data from the api, again. When we
-        // did not load initial data at this point SESSION WAS LOST
-        //
+        var targetOnCompletion = formConfig.targetOnCompletion;
+        _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("Form#onSuccessSubmit lastState targetOnCompletion: ", targetOnCompletion); // targetOnCompletion=/webform/create/post?fid=form172f81dc203
 
-        if (pendingFormConfig !== null && pendingFormConfig !== undefined) {
-          // Add the newly created entity to the formConfig
-          _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].addNewlyCreatedToForm(response, pendingFormConfig); // This contains web page path: /webform/create/post?fid=form172d4d3fa82
-          // However, we want api path: /webform/api/create/post?fid=form172d4d3fa82
-          // So we append the query part of this path to the path 
-          // containing the api path.
-          // 
-          //                const path = this.state.formConfig.targetOnCompletion;
-
-          var base = this.buildDefaultPath(pendingFormConfig);
-          var path = base + '?fid=' + pendingFormConfig.fid;
-
-          var onSuccess = function onSuccess(response) {
-            var formConfig = response.entity; // for collecting initial form values
-
-            var formValues = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectFormData(formConfig);
-            formValues = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].collectFormData(pendingFormConfig, formValues);
-            _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#onSuccessSubmit form values: ", formValues);
-
-            var stateUpdate = _this5.getRefreshedState({}, formValues, _this5.getSuccessMessage());
-
-            stateUpdate.formConfig = formConfig;
-            stateUpdate.pendingFormConfig = null; // This kind of transition requires replacing the entire
-            // FormConfig with the update.
-            //
-
-            var replaceEntirely = true;
-
-            _this5.updateStates(stateUpdate, replaceEntirely);
-          };
-
-          this.getRequest(path, onSuccess);
+        if (targetOnCompletion === null || targetOnCompletion === undefined) {
+          this.loadInitialDataForConfig(formConfig, this.getSuccessMessage());
         } else {
-          this.loadInitialData(this.getSuccessMessage());
+          if (this.pathMatchesFormConfig(targetOnCompletion, formConfig) === false) {
+            if (this.isApiPath(targetOnCompletion)) {
+              _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#onSuccessSubmit Returning to: " + targetOnCompletion);
+              this.loadInitialData(targetOnCompletion, this.getSuccessMessage());
+            } else {
+              _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#onSuccessSubmit Relocating to: " + targetOnCompletion);
+              window.location = targetOnCompletion;
+            }
+          } else {
+            ///////////////////////////// NOTE /////////////////////////////
+            // If there is a Form.state.pendingFormConfig and it has a
+            // formId that matches that specified in targetOnCompletion,
+            // we load it. Before we load it, we load initial data from
+            // the api, again. When we did not load initial data at this 
+            // point SESSION WAS LOST
+            //
+            var pendingFormConfig = this.state.pendingFormConfig;
+            var usePending = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].hasMatchingFormId(pendingFormConfig, targetOnCompletion);
+            _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace(function () {
+              return "Form#onSuccessSubmit Use pending FormConfig: " + usePending + ", target on completion: " + targetOnCompletion + ", pendingFormConfig.fid: " + (pendingFormConfig ? pendingFormConfig.fid : null);
+            });
+
+            if (usePending === false) {
+              this.loadInitialDataForConfig(formConfig, this.getSuccessMessage());
+            } else {
+              // Add the newly created entity to the formConfig
+              _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].addNewlyCreatedToForm(response, pendingFormConfig); // This contains web page path: /webform/create/post?fid=form172d4d3fa82
+              // However, we want api path: /api/webform/create/post?fid=form172d4d3fa82
+              // So we do some formatting
+              // 
+              //                        const path = this.state.formConfig.targetOnCompletion;
+
+              var base = this.buildDefaultPath(pendingFormConfig);
+              var path = base + '?fid=' + pendingFormConfig.fid;
+
+              var onSuccess = function onSuccess(response) {
+                var formConfig = response.entity; // for collecting initial form values
+
+                var formValues = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].collectFormData(formConfig);
+                formValues = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].collectFormData(pendingFormConfig, formValues);
+                _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#onSuccessSubmit form values: ", formValues);
+
+                var stateUpdate = _this5.getRefreshedState({}, formValues, _this5.getSuccessMessage());
+
+                stateUpdate.formConfig = formConfig;
+                stateUpdate.pendingFormConfig = null; // This kind of transition requires replacing the entire
+                // FormConfig with the update.
+                //
+
+                var replaceEntirely = true;
+
+                _this5.updateStates(stateUpdate, replaceEntirely);
+              };
+
+              this.getRequest(path, onSuccess);
+            }
+          }
         }
       } else {
         // Move to the first stage, to prepare for form inputs all over agin
-        var nextStage = lastStage ? _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN : this.nextStage();
-        var formConfig = this.nextFormConfig(response);
+        var nextStage = lastStage ? _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].BEGIN : this.nextStage();
         this.updateStates({
           context: {
             stage: nextStage
@@ -35374,9 +35368,9 @@ var Form = /*#__PURE__*/function (_React$Component) {
             infos: null
           }
         });
-        var form = formConfig.form;
-        _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logForm(form, "Form#onSuccessSubmit");
       }
+
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logFormConfig(formConfig, "Form#onSuccessSubmit");
     }
   }, {
     key: "onSubmit",
@@ -35386,8 +35380,8 @@ var Form = /*#__PURE__*/function (_React$Component) {
       event.preventDefault();
       var eventName = "onSubmit";
       var clientConfig = this.buildClientConfig(eventName);
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.debug("Form#onSubmit, submitting: " + clientConfig.path + "\n", clientConfig);
-      _client__WEBPACK_IMPORTED_MODULE_3___default()(clientConfig).done(function (response) {
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.debug("Form#onSubmit, submitting: " + clientConfig.path + "\n", clientConfig);
+      _client__WEBPACK_IMPORTED_MODULE_2___default()(clientConfig).done(function (response) {
         _this6.onSuccessSubmit(response, clientConfig.path);
       }, function (response) {
         _this6.onError(response, clientConfig.path);
@@ -35400,9 +35394,9 @@ var Form = /*#__PURE__*/function (_React$Component) {
 
       var stage = this.state.context.stage;
       var action = this.state.formConfig.action;
-      var result = stage === _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].VALIDATE || action === "read";
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
-        return "Form#isFormDisabled " + result + ", State.context: " + JSON.stringify(_this7.state.context);
+      var result = stage === _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].VALIDATE || action === "read";
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace(function () {
+        return "Form#isFormDisabled " + result + ", State.context: " + _log__WEBPACK_IMPORTED_MODULE_8___default.a.toMessage(_this7.state.context);
       });
       return result;
     }
@@ -35416,9 +35410,9 @@ var Form = /*#__PURE__*/function (_React$Component) {
 
       if (action === "read") {
         result = "Details for selected " + formName;
-      } else if (stage === _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].BEGIN) {
+      } else if (stage === _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].BEGIN) {
         result = "Enter " + formName + " details";
-      } else if (stage === _webformStage__WEBPACK_IMPORTED_MODULE_7__["default"].VALIDATE) {
+      } else if (stage === _webformStage__WEBPACK_IMPORTED_MODULE_6__["default"].VALIDATE) {
         result = "Confirm " + formName + " entries";
       } else {
         result = formName + " Form";
@@ -35430,7 +35424,7 @@ var Form = /*#__PURE__*/function (_React$Component) {
     key: "render",
     value: function render() {
       var form = this.state.formConfig !== null ? this.state.formConfig.form : null;
-      _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].logForm(form, "Form#render");
+      _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].logForm(form, "Form#render");
       return form !== null && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("form", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("h3", null, this.getFormHeading()), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(FormMessages, {
         id: "errors",
         ref: "errors",
@@ -35481,7 +35475,7 @@ var FormMessages = /*#__PURE__*/function (_React$Component2) {
     key: "hasValues",
     value: function hasValues(target) {
       var result = target !== null && target ? true : false;
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormMessages#hasValues: ", result);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("FormMessages#hasValues: ", result);
       return result;
     }
   }, {
@@ -35492,7 +35486,7 @@ var FormMessages = /*#__PURE__*/function (_React$Component2) {
       // Sample format
       // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
       // Recently a single message was of format: ["handle: must not be blank"]
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormMessages#render messages: ", this.props.messages);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("FormMessages#render messages: ", this.props.messages);
       var hasMessages = this.hasValues(this.props.messages);
       var messageRows = hasMessages === false ? null : Object.values(this.props.messages).map(function (message, index) {
         return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
@@ -35598,7 +35592,7 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
     _classCallCheck(this, FormRow);
 
     _this10 = _super4.call(this, props);
-    _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormRow#<init>. Props: ", _this10.props);
+    _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("FormRow#<init>. Props: ", _this10.props);
     _this10.state = {
       multiChoice: _this10.isMultiChoice()
     };
@@ -35641,7 +35635,7 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
       var formField;
 
       if (this.isMultiChoice()) {
-        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["SelectField"], {
+        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_4__["SelectField"], {
           formid: this.props.form.id,
           formMember: this.props.formMember,
           value: this.props.value,
@@ -35651,7 +35645,7 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
           onBlur: this.props.onBlur
         });
       } else if (this.props.formMember.type === 'checkbox') {
-        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["CheckBoxField"], {
+        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_4__["CheckBoxField"], {
           formid: this.props.form.id,
           formMember: this.props.formMember,
           value: this.props.value,
@@ -35661,7 +35655,7 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
           onBlur: this.props.onBlur
         });
       } else if (this.props.formMember.type === 'file') {
-        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["FileField"], {
+        formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_4__["FileField"], {
           formid: this.props.form.id,
           formMember: this.props.formMember,
           value: this.props.value,
@@ -35672,7 +35666,7 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
         });
       } else {
         if (this.props.formMember.numberOfLines < 2) {
-          formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["InputField"], {
+          formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_4__["InputField"], {
             formid: this.props.form.id,
             formMember: this.props.formMember,
             value: this.props.value,
@@ -35682,7 +35676,7 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
             onBlur: this.props.onBlur
           });
         } else {
-          formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_5__["TextAreaField"], {
+          formField = /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFields__WEBPACK_IMPORTED_MODULE_4__["TextAreaField"], {
             formid: this.props.form.id,
             formMember: this.props.formMember,
             value: this.props.value,
@@ -35703,11 +35697,11 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
 
       var multiChoice = this.isMultiChoice();
       var choices = this.props.formMember.choices;
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace(function () {
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace(function () {
         return "FormRow#render. Type: " + _this11.props.formMember.type + ", MultiChoice: " + multiChoice + ", Name: " + _this11.props.formMember.name + ", Value: " + _this11.props.value + ", choices: " + (choices ? Object.keys(choices).length : null);
       });
-      var config = _referencedFormConfig__WEBPACK_IMPORTED_MODULE_8__["default"].getConfig(this.props);
-      var fieldMessageId = _formUtil__WEBPACK_IMPORTED_MODULE_6__["default"].getIdForFormFieldMessage(this.props.formMember);
+      var config = _referencedFormConfig__WEBPACK_IMPORTED_MODULE_7__["default"].getConfig(this.props);
+      var fieldMessageId = _formUtil__WEBPACK_IMPORTED_MODULE_5__["default"].getIdForFormFieldMessage(this.props.formMember);
       var prop = this.props.errors; // This should be an array
 
       var errors = _typeof(prop) === 'object' ? Object.values(prop) : prop;
@@ -35715,13 +35709,13 @@ var FormRow = /*#__PURE__*/function (_React$Component4) {
       var errorHtml = hasErrors === false ? null : errors.map(function (error, index) {
         return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", null, error);
       });
-      _log__WEBPACK_IMPORTED_MODULE_9___default.a.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtml);
+      _log__WEBPACK_IMPORTED_MODULE_8___default.a.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtml);
       return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "form-row"
       }, hasErrors === true && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
         className: "formFieldMessage",
         id: fieldMessageId
-      }, errorHtml), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFieldHeading__WEBPACK_IMPORTED_MODULE_4__["default"], {
+      }, errorHtml), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_formFieldHeading__WEBPACK_IMPORTED_MODULE_3__["default"], {
         formMember: this.props.formMember
       }), this.props.formMember.type === 'checkbox' && ' ' || /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("br", null), config.displayField && this.getFormField(), config.displayLink && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("tt", null, config.message.prefix, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("a", {
         href: "#",
@@ -36219,20 +36213,56 @@ var TextAreaField = /*#__PURE__*/function (_React$Component5) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _errors__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./errors */ "./src/main/js/errors.js");
-/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
-/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var query_string__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! query-string */ "./node_modules/query-string/index.js");
+/* harmony import */ var query_string__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(query_string__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _errors__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./errors */ "./src/main/js/errors.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./log */ "./src/main/js/log.js");
+/* harmony import */ var _log__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_log__WEBPACK_IMPORTED_MODULE_2__);
 
 
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 
 
+
 var formUtil = {
+  /**
+   * Check if the form id of both arguments match and return <code>true</code> 
+   * if they match. Otherwise return <code>false</code>.
+   * 
+   * Parse the query part of <code>path</code> and check if the <code>fid</code> 
+   * parameter is equal to the <code>fid</code> property of the 
+   * <code>formConfig</code> If both are equal, return <code>true</code> 
+   * otherwise return <code>false</code>
+   * 
+   * @param {object} formConfig
+   * @param {string} path
+   * @returns {boolean} true if the form id extracted form both arguments
+   * are equal.
+   */
+  hasMatchingFormId: function hasMatchingFormId(formConfig, path) {
+    var result = false;
+
+    if (path !== null && path !== undefined && formConfig !== null && formConfig !== undefined) {
+      var pos = path.indexOf("?");
+
+      if (pos !== -1) {
+        var len = path.length;
+        var query = path.substring(pos, len);
+        var parsed = query_string__WEBPACK_IMPORTED_MODULE_0___default.a.parse(query);
+
+        if (parsed.fid === formConfig.fid) {
+          result = true;
+        }
+      }
+    }
+
+    return result;
+  },
   buildTargetPathForModel: function buildTargetPathForModel(basepath, action, modelname, suffix) {
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("basepath", basepath);
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("action", action);
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("modelname", modelname);
+    _errors__WEBPACK_IMPORTED_MODULE_1__["default"].requireValue("basepath", basepath);
+    _errors__WEBPACK_IMPORTED_MODULE_1__["default"].requireValue("action", action);
+    _errors__WEBPACK_IMPORTED_MODULE_1__["default"].requireValue("modelname", modelname);
     var target = basepath + '/' + action + '/' + modelname;
 
     if (suffix) {
@@ -36260,12 +36290,12 @@ var formUtil = {
    */
   addNewlyCreatedToForm: function addNewlyCreatedToForm(response, formConfig) {
     var added = false;
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("Form#addNewlyCreatedToForm ", response.entity);
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("Form#addNewlyCreatedToForm ", response.entity);
 
     if (response.entity && formConfig.form.members) {
       //Format:  {"Location":"http://localhost:9010/read/blog/1"}
       var loc = response.headers['Location'];
-      _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("Form#addNewlyCreatedToForm Response.headers.Location: ", loc);
+      _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("Form#addNewlyCreatedToForm Response.headers.Location: ", loc);
 
       if (loc) {
         formConfig.form.members.forEach(function (formMember, index) {
@@ -36282,7 +36312,7 @@ var formUtil = {
             var id = parseInt(idString, 10);
             formMember.value = id;
             added = true;
-            _log__WEBPACK_IMPORTED_MODULE_1___default.a.debug(function () {
+            _log__WEBPACK_IMPORTED_MODULE_2___default.a.debug(function () {
               return "Form#addNewlyCreatedToForm set " + formConfig.form.name + "#" + formMember.name + " = " + formMember.value;
             });
           }
@@ -36293,8 +36323,8 @@ var formUtil = {
     return added;
   },
   updateMultiChoice: function updateMultiChoice(formConfig, formMember, choiceMappings) {
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace(function () {
-      return "Updating Form." + formMember.name + " with: " + JSON.stringify(choiceMappings);
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace(function () {
+      return "Updating Form." + formMember.name + " with: " + _log__WEBPACK_IMPORTED_MODULE_2___default.a.toMessage(choiceMappings);
     }); // FormMember format 
     // {"id":"country","name":"country","label":"Country","advice":null,
     //  "value":null,"choices":{"0":"NIGERIA"},"maxLength":-1,"size":35,
@@ -36309,12 +36339,12 @@ var formUtil = {
 
         if (memberName === key) {
           var choices = choiceMappings[key];
-          _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace(function () {
-            return "Updating FormMember: " + memberName + " with choices: " + JSON.stringify(choices);
+          _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace(function () {
+            return "Updating FormMember: " + memberName + " with choices: " + _log__WEBPACK_IMPORTED_MODULE_2___default.a.toMessage(choices);
           });
           member.multiChoice = true;
           member.choices = choices;
-          _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("FormMember Update: ", member);
+          _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("FormMember Update: ", member);
         }
       };
 
@@ -36324,7 +36354,7 @@ var formUtil = {
 
       return member;
     });
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("FormMembers update: ", formMembersUpdate);
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("FormMembers update: ", formMembersUpdate);
     var formUpdate = Object.assign({}, formConfig.form);
     formUpdate.members = formMembersUpdate;
     var formConfigUpdate = Object.assign({}, formConfig);
@@ -36361,7 +36391,7 @@ var formUtil = {
 
       var logLevel = "trace"; //name === "formConfig" ? "trace" : "debug";
 
-      _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, "formUtil#updateObject " + name + " = " + "\nCurrent: " + _log__WEBPACK_IMPORTED_MODULE_1___default.a.toMessage(value) + "\nUpdated: " + _log__WEBPACK_IMPORTED_MODULE_1___default.a.toMessage(updatedValue));
+      _log__WEBPACK_IMPORTED_MODULE_2___default.a.log(logLevel, "formUtil#updateObject " + name + " = " + "\nCurrent: " + _log__WEBPACK_IMPORTED_MODULE_2___default.a.toMessage(value) + "\nUpdated: " + _log__WEBPACK_IMPORTED_MODULE_2___default.a.toMessage(updatedValue));
       output[name] = updatedValue;
     }
 
@@ -36402,7 +36432,7 @@ var formUtil = {
     formUtil.updateValue('mid', collectInto, formConfig);
     formUtil.updateValue('targetOnCompletion', collectInto, formConfig);
     formUtil.updateValue('modelfields', collectInto, formConfig);
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.trace("formUtil#collectConfigData. ", collectInto);
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.trace("formUtil#collectConfigData. ", collectInto);
     return collectInto;
   },
   getIdForFormFieldAdvice: function getIdForFormFieldAdvice(formMember) {
@@ -36412,12 +36442,12 @@ var formUtil = {
     return formMember.id + '-message';
   },
   getIdForSelectOptionAt: function getIdForSelectOptionAt(formMember, index) {
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("index", index);
+    _errors__WEBPACK_IMPORTED_MODULE_1__["default"].requireValue("formMember", formMember);
+    _errors__WEBPACK_IMPORTED_MODULE_1__["default"].requireValue("index", index);
     return formMember.id + '-' + index;
   },
   getIdForDefaultSelectOption: function getIdForDefaultSelectOption(formMember) {
-    _errors__WEBPACK_IMPORTED_MODULE_0__["default"].requireValue("formMember", formMember);
+    _errors__WEBPACK_IMPORTED_MODULE_1__["default"].requireValue("formMember", formMember);
     return formMember.id + '-no-selection';
   },
   logFormConfig: function logFormConfig(formConfig, methodName, logLevel) {
@@ -36432,7 +36462,7 @@ var formUtil = {
       logLevel = 'trace';
     }
 
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, function () {
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.log(logLevel, function () {
       return "formUtil->" + id + "-> Form. name: " + (form ? form.name : null) + ", members: " + (form ? form.memberNames : null);
     });
   },
@@ -36441,8 +36471,8 @@ var formUtil = {
       logLevel = 'debug';
     }
 
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, function () {
-      return "formUtil->" + id + "-> Response.headers: " + (response ? _log__WEBPACK_IMPORTED_MODULE_1___default.a.toMessage(response.headers) : null);
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.log(logLevel, function () {
+      return "formUtil->" + id + "-> Response.headers: " + (response ? _log__WEBPACK_IMPORTED_MODULE_2___default.a.toMessage(response.headers) : null);
     });
   },
   logEvent: function logEvent(event, id, logLevel) {
@@ -36450,7 +36480,7 @@ var formUtil = {
       logLevel = 'trace';
     }
 
-    _log__WEBPACK_IMPORTED_MODULE_1___default.a.log(logLevel, function () {
+    _log__WEBPACK_IMPORTED_MODULE_2___default.a.log(logLevel, function () {
       return "formUtil->" + id + "-> Event.target: " + event.target.name + "=" + event.target.value;
     });
   }
@@ -36517,7 +36547,7 @@ var _log = {
     return false;
   },
   toMessage: function toMessage(arg) {
-    return arg === null ? "null" : !arg ? "undefined" : _typeof(arg) === "object" ? JSON.stringify(arg, _log.getCircularReplacer()) : typeof arg === 'function' ? arg() : arg;
+    return arg === null ? "null" : arg === undefined ? "undefined" : _typeof(arg) === "object" ? JSON.stringify(arg, _log.getCircularReplacer()) : typeof arg === 'function' ? arg() : arg;
   },
 
   /**

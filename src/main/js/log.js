@@ -61,7 +61,7 @@ var log = {
     
     toMessage: function(arg) {
         return arg === null ? "null" : 
-                !arg ? "undefined" : 
+                arg === undefined ? "undefined" : 
                 typeof(arg) === "object" ? JSON.stringify(arg, log.getCircularReplacer()) : 
                 typeof(arg) === 'function' ? arg() : arg;
     },
