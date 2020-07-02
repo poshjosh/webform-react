@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController 
 @RequestMapping(path = WebformControllerConstants.API_BASEPATH, 
         produces = MediaType.APPLICATION_JSON_VALUE)
-public class WebformControllerRest extends FormControllerRest{
+public class WebformControllerRest extends FormControllerRest<Object>{
 
 }
 /**    

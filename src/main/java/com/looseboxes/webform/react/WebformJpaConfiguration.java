@@ -3,7 +3,7 @@ package com.looseboxes.webform.react;
 import com.bc.jpa.dao.JpaObjectFactory;
 import com.bc.jpa.dao.JpaObjectFactoryBase;
 import com.bc.jpa.dao.sql.SQLDateTimePatterns;
-import com.looseboxes.webform.config.JpaConfiguration;
+import com.looseboxes.webform.config.AbstractWebformJpaConfiguration;
 import javax.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Scope;
  * @author hp
  */
 @Configuration
-public class WebformJpaConfiguration extends JpaConfiguration{
+public class WebformJpaConfiguration extends AbstractWebformJpaConfiguration{
     
     // Exception occured when Hibernate calls JpaObjectFactory.close during
     // startup. The JpaObjectFactory.close method, closes the EntityManagerFactory 

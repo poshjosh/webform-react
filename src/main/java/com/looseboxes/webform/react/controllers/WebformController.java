@@ -2,6 +2,7 @@ package com.looseboxes.webform.react.controllers;
 
 import com.looseboxes.webform.Params;
 import com.looseboxes.webform.controllers.FormControllerBase;
+import com.looseboxes.webform.controllers.FormParamsUtil;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  */
 @Controller
 @RequestMapping(WebformControllerConstants.BASEPATH)
-public class WebformController extends FormControllerBase{
+public class WebformController extends FormControllerBase<Object>{
     
     private final Logger log = LoggerFactory.getLogger(WebformController.class);
     
@@ -48,7 +49,7 @@ public class WebformController extends FormControllerBase{
             
             this.addApiEndpoint(model);
             
-            this.updateModelMapWithFormParamsFromRequest(model, request);
+            FormParamsUtil.updateModelMapWithFormParamsFromRequest(model, request);
         }
         
         log.debug("#displayForm. ModelMap: {}", model);
