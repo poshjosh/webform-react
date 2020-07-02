@@ -1,9 +1,41 @@
 'use strict';
 
+import queryString from "query-string";
 import errors from "./errors";
 import log from "./log";
 
 const formUtil = {
+    
+    /**
+     * Check if the form id of both arguments match and return <code>true</code> 
+     * if they match. Otherwise return <code>false</code>.
+     * 
+     * Parse the query part of <code>path</code> and check if the <code>fid</code> 
+     * parameter is equal to the <code>fid</code> property of the 
+     * <code>formConfig</code> If both are equal, return <code>true</code> 
+     * otherwise return <code>false</code>
+     * 
+     * @param {object} formConfig
+     * @param {string} path
+     * @returns {boolean} true if the form id extracted form both arguments
+     * are equal.
+     */
+    hasMatchingFormId: function(formConfig, path) {
+        var result = false;
+        if(path !== null && path !== undefined
+                && formConfig !== null && formConfig !== undefined) {
+            const pos = path.indexOf("?");
+            if(pos !== -1) {
+                const len = path.length;
+                const query = path.substring(pos, len);
+                const parsed = queryString.parse(query);
+                if(parsed.fid === formConfig.fid) {
+                    result = true;
+                }
+            }
+        }
+        return result;
+    },
 
     buildTargetPathForModel: function(basepath, action, modelname, suffix) {
         errors.requireValue("basepath", basepath);
@@ -15,7 +47,7 @@ const formUtil = {
         }
         return target;
     },
-    
+
     buildTargetPath: function(props, formConfig, suffix) {
         return formUtil.buildTargetPathForModel(
                 props.apibasepath, formConfig.action, formConfig.modelname, suffix);
@@ -67,7 +99,7 @@ const formUtil = {
     updateMultiChoice(formConfig, formMember, choiceMappings) {
         
         log.trace(() => "Updating Form." + formMember.name + 
-                " with: " + JSON.stringify(choiceMappings));
+                " with: " + log.toMessage(choiceMappings));
         
         // FormMember format 
         // {"id":"country","name":"country","label":"Country","advice":null,
@@ -82,7 +114,7 @@ const formUtil = {
                 if(memberName === key) {
                     const choices = choiceMappings[key];
                     log.trace(() => "Updating FormMember: " + memberName + 
-                            " with choices: " + JSON.stringify(choices));
+                            " with choices: " + log.toMessage(choices));
                     member.multiChoice = true;
                     member.choices = choices;
                     log.trace("FormMember Update: ", member);
