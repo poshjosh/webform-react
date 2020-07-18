@@ -40,16 +40,18 @@ class SelectField extends React.Component{
         
         const choices = this.props.formMember.choices;
         
-        const val = choices[index];
+        const enumOrdinal = index;
+        
+        const val = choices[enumOrdinal];
             
-        const selected = index === this.props.value || val === this.props.value;
+        const selected = enumOrdinal === this.props.value || val === this.props.value;
 
         log.trace(() => "SelectField#listItemAt. " + 
-                index + " = " + val + ", selected: " + selected);
+                enumOrdinal + " = " + val + ", selected: " + selected);
 
 //Warning: Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>.
 //            selected={selected}
-        const optionId = formUtil.getIdForSelectOptionAt(this.props.formMember, index);
+        const optionId = formUtil.getIdForSelectOptionAt(this.props.formMember, enumOrdinal);
 
         const htm = <option 
             ref={optionId}
@@ -57,7 +59,7 @@ class SelectField extends React.Component{
             key={optionId}
             disabled={this.props.disabled}
             name={this.props.formMember.name}
-            value={index}>
+            value={enumOrdinal}>
             {val}
         </option>;
 

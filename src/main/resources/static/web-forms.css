@@ -25,6 +25,8 @@ form {
     text-align: left;
 }
 
+.form-heading{ width: 100%; text-align: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 1.0rem; }
+
 .form-row{ width: 100%; text-align: left; margin-bottom: 1.0rem; }
 
 /** text, number, password, file, checkbox, radio, datetime-local, date, time, hidden */

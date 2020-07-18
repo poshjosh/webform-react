@@ -1,19 +1,12 @@
-var path = require('path');
+const path = require('path');
 
 module.exports = {
-    entry: './src/main/js/app.js',
-    devtool: 'sourcemaps',
-    cache: true,
-    mode: 'development',
-    resolve: {
-        alias: {
-            'stompjs': __dirname + '/node_modules' + '/stompjs/lib/stomp.js'
-        }
-    },    
+//    entry: './src/main/js/form.js', // Both prod and dev have own entry
     output: {
         path: __dirname,
-        filename: './src/main/resources/static/webform.js'
+        filename: './src/main/resources/static/web-forms.js'
     },
+    target: 'web',
     module: {
         rules: [
             {

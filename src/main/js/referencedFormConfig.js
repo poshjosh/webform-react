@@ -16,12 +16,13 @@ const referencedFormConfig = {
         const ref = props.formMember.referencedFormHref;
         // Format of expected output:
         // [apibasepath]/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8
+        const targetOnCompletion = window.location.pathname + '?fid=' + props.form.id;
+        const query = '?parentfid=' + props.form.id + 
+                      '&targetOnCompletion=' + targetOnCompletion;
+        const path = [props.action, props.formMember.name, query];
+        const apibasepath = formUtil.apibasepath(props);
         const link = ref === null || ref === undefined ? null : 
-                formUtil.buildTargetPathForModel(
-                    props.apibasepath, props.action, props.formMember.name, 
-                    '?parentfid=' + props.form.id + 
-                    '&targetOnCompletion=' + window.location.pathname + 
-                    '?fid=' + props.form.id);
+                formUtil.buildPath(apibasepath, path);
         log.trace("ReferencedFormConfig#getLink: ", link);
         return link;
     },
@@ -31,25 +32,25 @@ const referencedFormConfig = {
      * @returns object of format: 
      * <pre>
      * {
-     *     displayField: [true|false],
-     *     displayLink: [true|false],
-     *     link: string,
-     *     message: {
-     *         prefix: string,
-     *         value: string
-     *     }
+     *     displayField: true,
+     *     displayLink: true,
+     *     messsage: "Blog is required",
+     *     link: {
+     *         href: "/api/webform/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8",
+     *         text: "Create one"
+     *     }    
      * }
      * </pre>
      */
-    getConfig: function(props) {
-        const linkToRef = referencedFormConfig.getLink(props);
-        const hasLinkToRef = linkToRef !== undefined && linkToRef !== null;
+    buildBaseConfig: function(props) {
+        const href = referencedFormConfig.getLink(props);
+        const hasLinkToRef = href !== undefined && href !== null;
         const refName = props.formMember.label;
         const multiChoice = referencedFormConfig.isMultiChoice(props);
-        const msgPrefix = multiChoice === true ? 
+        const message = multiChoice === true ? 
                 "Select " + refName + " or " : props.formMember.required ?
                 refName + " is required. " : "";
-        const refFormMsg = hasLinkToRef ? "Create one" : "";
+        const linkText = hasLinkToRef ? "Create one" : "";
         const displayField = (hasLinkToRef === false || multiChoice === true);
         const value = props.formMember.value;
         const hasValue = value !== null && value !== "" && value !== undefined;
@@ -58,13 +59,24 @@ const referencedFormConfig = {
         const config = {
             displayField: displayField,
             displayLink: displayLinkToRef,
-            link: linkToRef,
-            message: {
-                prefix: msgPrefix,
-                value: refFormMsg
-            }
+            message: message,
+            link: {href: href, text: linkText}
         };
-        log.trace("ReferencedFormConfig#getConfig: ", config);
+        log.debug("ReferencedFormConfig#getConfig: ", config);
+        return config;
+    },
+    
+    getConfig: function(props) {
+        const baseConfig = referencedFormConfig.buildBaseConfig(props);
+        let config;
+        if(props.getReferencedFormConfig) {
+            config = props.getReferencedFormConfig(props.form, props.formMember, baseConfig);
+        }else if(props.getReferencedFormMessage) {
+            config = baseConfig;
+            config.message = props.getReferencedFormMessage(props.form, props.formMember);
+        }else {
+            config = baseConfig;
+        }
         return config;
     }
 };

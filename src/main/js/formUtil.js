@@ -6,6 +6,14 @@ import log from "./log";
 
 const formUtil = {
     
+    basepath: function(props) {
+        return props.basepath ? props.basepath : "";
+    },
+    
+    apibasepath: function(props) {
+        return props.apibasepath ? props.apibasepath : "";
+    },
+
     /**
      * Check if the form id of both arguments match and return <code>true</code> 
      * if they match. Otherwise return <code>false</code>.
@@ -36,21 +44,41 @@ const formUtil = {
         }
         return result;
     },
-
-    buildTargetPathForModel: function(basepath, action, modelname, suffix) {
-        errors.requireValue("basepath", basepath);
-        errors.requireValue("action", action);
-        errors.requireValue("modelname", modelname);
-        var target = basepath + '/' + action + '/' + modelname;
-        if(suffix) {
-            target = target + '/' + suffix;
+    
+    buildPath: function(basepath, paths = []) {
+        var result = errors.requireValue("FormUtil#buildPath(basepath,", basepath);
+        for(const path of paths) {
+            if(path !== null && path !== undefined) {
+                result = result + "/" + path;
+            }
         }
-        return target;
+        log.trace("FormUtil#buildPath Output: " + result);
+        return result;
     },
-
-    buildTargetPath: function(props, formConfig, suffix) {
-        return formUtil.buildTargetPathForModel(
-                props.apibasepath, formConfig.action, formConfig.modelname, suffix);
+    
+    buildPathFor: function(props, formConfig, suffix) {
+        const action = formConfig ? formConfig.action : props.action;
+        const modelname = formConfig ? formConfig.modelname : props.modelname;
+        var modelid = formConfig ? formConfig.id : props.id;
+        if( ! modelid) {
+            modelid = formConfig ? formConfig.mid : props.mid;
+        }
+        
+        if(modelid) {
+            if(suffix) {
+                const conn = suffix.indexOf("?") === -1 ? "?" : "&";
+                suffix = suffix + conn + "id=" + modelid;
+                modelid = null;
+            }else{
+                modelid = "?id=" + modelid;
+            }
+        }
+        
+        const path = [action, modelname, modelid, suffix];
+        const apibasepath = formUtil.apibasepath(props);
+        const result = formUtil.buildPath(apibasepath, path);
+        log.trace("FormUtil#buildPathFor Output: " + result);
+        return result;
     },
 
     /**
@@ -207,7 +235,7 @@ const formUtil = {
         // collect special fields used by the api
         formUtil.updateValue('parentfid', collectInto, formConfig);
         formUtil.updateValue('fid', collectInto, formConfig);
-        formUtil.updateValue('mid', collectInto, formConfig);
+        formUtil.updateValue('id', collectInto, formConfig);
         formUtil.updateValue('targetOnCompletion', collectInto, formConfig);
         formUtil.updateValue('modelfields', collectInto, formConfig);
         log.trace("formUtil#collectConfigData. ", collectInto);

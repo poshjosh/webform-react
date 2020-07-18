@@ -11,23 +11,34 @@ import formUtil from "./formUtil";
 import webformStage from "./webformStage";
 import referencedFormConfig from "./referencedFormConfig";
 import log from "./log";
-log.init({logLevel: 'debug'});
+//log.init({logLevel: 'debug'});
 
 /**
- * Required props are: 
- * <ul>
- *   <li>action - One of: [create|read|update|delete]</li>
- *   <li>modelname - The name of the model for which a form will be displayed</li>
- * </ul>
- * Optional props are: 
- * <ul>
- *   <li>basepath - The context path to webform HTML pages e.g <code>/webform</code></li>
- *   <li>apibasepath - The path to the api without the domain e.g <code>/api/webform</code></li>
- *   <li>
- *       asyncvalidation - If true validation will be done for each input as
- *       a value is entered.
- *   </li>
- * </ul>
+ * @param {string} action - One of: [create|read|update|delete]
+ * @param {string} modelname - The name of the model for which a form will be displayed
+ * @param {string} id - (optional) The id for the model. Not required for <code>create</code>
+ * @param {string} basepath - (optional) The context path (without the domain). Prefix to all URLs.
+ * @param {string} apibasepath - (optional) The path to the api (without the domain) e.g <code>/api</code>
+ * @param {string|bool} asyncvalidation - If true validation will be done for each input as a value is entered.
+ * @param {function} getFormHeading - Takes 2 arguments: FormConfig {object} and stage (string).
+ * @param {string} messageToDisplayWhileLoading - (optional) default = ..loading
+ * @param {function} getReferencedFormConfig
+ * @param {function} getReferencedFormMessage
+ * 
+ * Sample referenced form config:
+ * <code>
+ * <pre>
+ * {
+ *     displayField: true,
+ *     displayLink: true,
+ *     messsage: "Blog is required",
+ *     link: {
+ *         href: "/api/webform/create/blog/?parentfid=form172ceff22f8&targetOnCompletion=/webform/create/post?fid=form172ceff22f8",
+ *         text: "Create one"
+ *     }    
+ * }
+ * </pre>
+ * </code>
  * 
  * <b>Note</b> action and modelname may change from the original reflected in
  * the props. To use the current values of those properties access them via
@@ -59,6 +70,7 @@ class Form extends React.Component {
     //
     getInitialState() {
         return {
+            doneInitialLoadData: false,
             context: {stage: webformStage.BEGIN},
             formConfig: null,
             pendingFormConfig: null,
@@ -139,16 +151,6 @@ class Form extends React.Component {
         return result;
     }
     
-    refreshStates(formConfig, formValues, messages) {
-        
-        formUtil.logFormConfig(formConfig, "Form#refreshStates");
-        log.trace("Form#refreshStates FormValues: ", formValues);
-        
-        const stateUpdate = this.getRefreshedState(formConfig, formValues, messages);
-        
-        this.updateStates(stateUpdate);
-    }
-    
     onSuccessInitialLoad(response, path, messages) {
         formUtil.logResponse(response, "Form#onSuccessInitialLoad");
         
@@ -156,7 +158,11 @@ class Form extends React.Component {
         
         const formValues = formUtil.collectFormData(formConfig);
         
-        this.refreshStates(formConfig, formValues, messages);
+        const stateUpdate = this.getRefreshedState(formConfig, formValues, messages);
+        
+        stateUpdate.doneInitialLoadData = true;
+        
+        this.updateStates(stateUpdate);
     }
     
     getRequest(path, onSuccess, onError) {
@@ -184,14 +190,30 @@ class Form extends React.Component {
     }
     
     buildDefaultPath(formConfig = this.state.formConfig) {
-        const action = formConfig ? formConfig.action : this.props.action;
-        const modelname = formConfig ? formConfig.modelname : this.props.modelname;
-        return formUtil.buildTargetPathForModel(
-                this.props.apibasepath, action, modelname);
+        return formUtil.buildPathFor(this.props, formConfig);
     }
     
     loadInitialDataForConfig(formConfig = this.state.formConfig, messagesOnSuccess) {
-        const path = this.buildDefaultPath(formConfig);
+        
+        var path = this.buildDefaultPath(formConfig);
+  
+        // Adding the currently displaying query i.e via window.location.search
+        // proved problematic. We cannot accurately predict what the query will 
+        // contain at any given time. For example it once contained a formid
+        // for a form which had already been completed... leading to errors.
+        // 
+        // {"href":"http://localhost:9010/webform/create/post?myname=nonso","origin":"http://localhost:9010","protocol":"http:","host":"localhost:9010","hostname":"localhost","port":"9010","pathname":"/webform/create/post","search":"?myname=nonso","hash":""}
+//        log.trace("Location: ", window.location);
+//        const queryString = window.location.search;
+//        if(queryString !== null && queryString !== undefined) {
+//            if(path.indexOf('?') === -1) {
+//                log.trace("Adding query string to path: " + queryString);
+//                path = path + queryString;
+//            }else{
+//                log.debug("Path already contains a query string, so will not add: " + queryString);
+//            }
+//        }
+        
         this.loadInitialData(path, messagesOnSuccess);
     }
     
@@ -259,7 +281,7 @@ class Form extends React.Component {
         
         const formConfig = this.state.formConfig;
 
-        const path = formUtil.buildTargetPath(this.props, formConfig, suffix);
+        const path = formUtil.buildPathFor(this.props, formConfig, suffix);
         
         log.trace("Form#buildClientConfigForFormMember. POST ", path);
         
@@ -288,7 +310,7 @@ class Form extends React.Component {
         
         const suffix = webformStage.isFirst(nextStage) ? null : nextStage;
 
-        const path = formUtil.buildTargetPath(this.props, formConfig, suffix);
+        const path = formUtil.buildPathFor(this.props, formConfig, suffix);
 
         log.trace(() => "Form#buildClientConfigForForm. Current stage: " + currStage + 
                 ", Next stage: " + nextStage + ", Target: " + path);
@@ -459,8 +481,8 @@ class Form extends React.Component {
     }
     
     isApiPath(path) {
-        return path !== null && path !== undefined && 
-                    path.indexOf(this.props.apibasepath) !== -1;
+        const apibasepath = formUtil.apibasepath(this.props);
+        return path && apibasepath && path.indexOf(apibasepath) === 0;
     }
     
     pathMatchesFormConfig(path, formConfig = this.state.formConfig) {
@@ -469,8 +491,9 @@ class Form extends React.Component {
                 formConfig === null || formConfig === undefined) {
             result = false;
         }else{
-            const rhs = formUtil.buildTargetPathForModel(
-                    this.props.basepath, formConfig.action, "");
+            const path = [formConfig.action];
+            const basepath = formUtil.basepath(this.props);
+            const rhs = formUtil.buildPath(basepath, path);
             result = path.indexOf(rhs) === 0;
             log.debug(() => "Form#pathMatchesFormConfig " + 
                     result + ", lhs: " + path + ", rhs: " + rhs);
@@ -621,19 +644,22 @@ class Form extends React.Component {
         return result;
     }
 
-    getFormHeading() {
-        const formName = this.state.formConfig.form.displayName;
-        const stage = this.state.context.stage;
-        const action = this.state.formConfig.action;
+    getFormHeading(formConfig = this.state.formConfig, stage = this.state.context.stage) {
         let result;
-        if(action === "read") {
-            result = "Details for selected " + formName;
-        }else if(stage === webformStage.BEGIN) {
-            result = "Enter " + formName + " details";
-        }else if(stage === webformStage.VALIDATE) {
-            result = "Confirm " + formName + " entries";
+        if(this.props.getFormHeading) {
+            result = this.props.getFormHeading(formConfig, stage);
         }else{
-            result = formName + " Form";
+            const formName = formConfig.form.displayName;
+            const action = this.state.formConfig.action;
+            if(action === "read") {
+                result = "Details for selected " + formName;
+            }else if(stage === webformStage.BEGIN) {
+                result = "Enter " + formName + " details";
+            }else if(stage === webformStage.VALIDATE) {
+                result = "Confirm " + formName + " entries";
+            }else{
+                result = formName + " Form";
+            }
         }
         return result;
     }
@@ -642,12 +668,30 @@ class Form extends React.Component {
         
         const form = this.state.formConfig !== null ? this.state.formConfig.form : null;
         formUtil.logForm(form, "Form#render");
+             
+        let htm;
+        
+        if(this.state.doneInitialLoadData === false) {
+            
+            const loading = this.props.messageToDisplayWhileLoading ? 
+                    this.props.messageToDisplayWhileLoading : "..loading";
+            htm = <div>{loading}</div>;
+            
+        }else if(form === null || form === undefined) {
+            
+            htm = <div>Received an unexpected response from the remote server. Try refreshing</div>;
+            
+        }else{
+            const formHeading = this.getFormHeading();
+            const headingHtm = formHeading === undefined && formHeading === null ? "" :
+                    <div className="form-heading">{formHeading}</div>;
+            htm = <form>
+    
+                {headingHtm}
                 
-        return (form !== null) && (
-            <form>
-                <h3>{this.getFormHeading()}</h3>
                 <FormMessages id="errors" ref="errors" className="error-message" messages={this.state.messages.errors}/>
                 <FormMessages id="infos" ref="infos" className="info-message" messages={this.state.messages.infos}/>
+                
                 <FormRows {...(this.props)}
                           errors={this.state.messages.errors}
                           form={form} 
@@ -662,8 +706,10 @@ class Form extends React.Component {
                 &nbsp;        
                 <button type="submit" className="button primary-button" 
                         onClick={this.onSubmit}>Submit</button>
-            </form>
-        );
+            </form>;
+        }
+        
+        return htm;
     }
 };
 
@@ -840,6 +886,7 @@ class FormRow extends React.Component{
                 ", Value: " + this.props.value + ", choices: " +
                 (choices ? Object.keys(choices).length : null));
         
+        
         const config = referencedFormConfig.getConfig(this.props);
         
         const fieldMessageId = formUtil.getIdForFormFieldMessage(this.props.formMember);
@@ -867,10 +914,10 @@ class FormRow extends React.Component{
                 {config.displayField && this.getFormField()}
                 
                 {config.displayLink && (
-                        <tt>{config.message.prefix}
+                        <tt>{config.message}
                             <a href="#" target="_blank"
-                               onClick={(e) => this.props.onBeginReferencedForm(e, config.link)} 
-                               >{config.message.value}
+                               onClick={(e) => this.props.onBeginReferencedForm(e, config.link.href)}>
+                               {config.link.text}
                              </a>
                         </tt>
                     )
