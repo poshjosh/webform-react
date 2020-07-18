@@ -4,6 +4,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import client from "./client";
 import FormRow from "./formRow";
+import formDataBuilder from "./formDataBuilder";
 import formUtil from "./formUtil";
 import webformStage from "./webformStage";
 import log from "./log";
@@ -16,10 +17,20 @@ import log from "./log";
  * @param {string} basepath - (optional) The context path (without the domain). Prefix to all URLs.
  * @param {string} apibasepath - (optional) The path to the api (without the domain) e.g <code>/api</code>
  * @param {string|bool} asyncvalidation - If true validation will be done for each input as a value is entered.
+ * @param {function} onSubmit - (optional) function to handle onSubmit event
+ * Takes 2 arguments, the event and an object. The object is of format:
+ * <code>
+ * {
+ *      method: 'POST', 
+ *      path: path,
+ *      headers: { "Content-Type": "multipart/form-data" },
+ *      entity: entity
+ * };
+ * </code>
  * @param {function} getFormHeading - Takes 2 arguments: FormConfig {object} and stage (string).
  * @param {string} messageToDisplayWhileLoading - (optional) default = ..loading
- * @param {function} getReferencedFormConfig
- * @param {function} getReferencedFormMessage
+ * @param {function} getReferencedFormConfig - (optional)
+ * @param {function} getReferencedFormMessage -(optional)
  * 
  * Sample referenced form config:
  * <code>
@@ -232,108 +243,6 @@ class Form extends React.Component {
         this.loadInitialDataForConfig();
     }
 
-    buildFormOutput() {
-
-        // buffer to collect form data
-        const formData = formUtil.collectConfigData(this.state.formConfig);
-        
-        const source = this.state.values;
-        log.trace("Form#buildFormOutput. Values: ", source);
-
-        // collect form values
-        const result = Object.assign(formData, source);
-        
-        log.trace("Form#buildFormOutput. Output: ", result);
-        
-        return result;
-    }
-    
-    newFormDataClientConfig(path, entity) {
-        const result = {
-            method: 'POST', 
-            path: path,
-            headers: { "Content-Type": "multipart/form-data" },
-            entity: entity
-        };
-        return result;
-    }
-
-    /**
-     * @param {type} eventName 
-     * @param {type} name The name of the formMember that triggered the event
-     * @param {type} value The value of the formMember that triggered the event
-     * @returns {Form.buildClientConfig.result}
-     */
-    buildClientConfigForFormMember(eventName, name, value) {
-        
-        let suffix;
-        if(eventName === "onClick") {
-           suffix = webformStage.SubStage.DEPENDENTS;
-        }else if(eventName === "onBlur"){
-            suffix = webformStage.SubStage.VALIDATE_SINGLE;
-        }else{
-            suffix = eventName;
-        }
-        
-        const formConfig = this.state.formConfig;
-
-        const path = formUtil.buildPathFor(this.props, formConfig, suffix);
-        
-        log.trace("Form#buildClientConfigForFormMember. POST ", path);
-        
-        const entity = formUtil.collectConfigData(formConfig);
-        entity.propertyName = name;
-        entity.propertyValue = value;
-        entity[name] = value;
-        
-        log.trace("Form#buildClientConfigForFormMember. data: ", entity);
-        
-        const result = this.newFormDataClientConfig(path, entity);
-        
-        return result;
-    }
-    
-    /**
-     * @param {type} eventName 
-     * @returns {undefined}
-     */
-    buildClientConfigForForm(eventName) {
-        const formConfig = this.state.formConfig;
-        formUtil.logFormConfig(formConfig, eventName);
-        
-        const currStage = this.state.context.stage;
-        const nextStage = webformStage.next(currStage);
-        
-        const suffix = webformStage.isFirst(nextStage) ? null : nextStage;
-
-        const path = formUtil.buildPathFor(this.props, formConfig, suffix);
-
-        log.trace(() => "Form#buildClientConfigForForm. Current stage: " + currStage + 
-                ", Next stage: " + nextStage + ", Target: " + path);
-        
-        const entity = this.buildFormOutput();
-        
-        const result = this.newFormDataClientConfig(path, entity);
-        
-        return result;
-    }
-
-    /**
-     * @param {type} eventName 
-     * @param {type} name Optional. The name of the formMember that triggered the event
-     * @param {type} value Optional. The value of the formMember that triggered the event
-     * @see Form.buildClientConfigForFormMember(eventName, name, value)
-     * @see Form.buildClientConfigForForm()
-     * @returns {Form.buildClientConfig.result}
-     */
-    buildClientConfig(eventName, name, value) {
-        if(name) {
-            return this.buildClientConfigForFormMember(eventName, name, value);
-        }else{
-            return this.buildClientConfigForForm(eventName);
-        }
-    }
-    
     getEventTargetValue(event, formMember) {
         const eventTarget = event.target;
         return formMember.type === 'checkbox' || formMember.type === 'radio' ? 
@@ -375,7 +284,8 @@ class Form extends React.Component {
             return;
         }
         
-        const clientConfig = this.buildClientConfig(eventName, name, value);
+        const clientConfig = formDataBuilder.buildHttpConfigForFormMember(
+                this.state.formConfig, eventName, name, value, this.props);
         
         log.debug("Form#handleEvent, submitting: " + 
                 clientConfig.path + "\n", clientConfig);
@@ -613,21 +523,32 @@ class Form extends React.Component {
     onSubmit(event) {
         event.preventDefault();
         
+        const formConfig = this.state.formConfig;
         const eventName = "onSubmit";
+        const values = this.state.values;
+        const currentFormStage = this.state.context.stage;
+        
+        const clientConfig = formDataBuilder.buildHttpConfigForForm(
+                formConfig, eventName, values, currentFormStage, this.props);
+        
+        if(this.props.onSubmit) {
+            
+            this.props.onSubmit(event, clientConfig);
+            
+        }else{
+            
+            log.debug("Form#onSubmit, submitting: " + 
+                    clientConfig.path + "\n", clientConfig);
 
-        const clientConfig = this.buildClientConfig(eventName);
-        
-        log.debug("Form#onSubmit, submitting: " + 
-                clientConfig.path + "\n", clientConfig);
-        
-        client(clientConfig).done(response => {
-  
-            this.onSuccessSubmit(response, clientConfig.path);
-            
-        }, response => {
-            
-            this.onError(response, clientConfig.path);
-        });
+            client(clientConfig).done(response => {
+
+                this.onSuccessSubmit(response, clientConfig.path);
+
+            }, response => {
+
+                this.onError(response, clientConfig.path);
+            });
+        }
     }
     
     isFormDisabled() {
