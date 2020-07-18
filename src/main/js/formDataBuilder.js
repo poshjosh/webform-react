@@ -70,21 +70,25 @@ const formDataBuilder = {
         return entity;
     },
     
-    pathSuffixForForm: function(currentFormStage) {
+    pathSuffixForForm: function(props, currentFormStage) {
         
-        const nextStage = webformStage.next(currentFormStage);
-        
-        const suffix = webformStage.isFirst(nextStage) ? null : nextStage;
-
-        log.trace(() => "FormDataBuilder#buildClientConfigForForm. Current stage: " + 
+        var nextStage = webformStage.next(currentFormStage);
+        log.trace(() => "FormDataBuilder#pathSuffixForForm. Current stage: " + 
                 currentFormStage + ", Next stage: " + nextStage);
+        
+        let suffix;
+        if(props.express === true || props.express === "true" && nextStage === webformStage.VALIDATE) {
+            suffix = webformStage.VALIDATE + '/' + webformStage.SUBMIT;
+        }else{
+            suffix = webformStage.isFirst(nextStage) ? null : nextStage;
+        }   
         
         return suffix;
     },
     
     buildHttpConfigForForm: function(formConfig, eventName, values, currentFormStage, props) {
         
-        const pathSuffix = formDataBuilder.pathSuffixForForm(currentFormStage);
+        const pathSuffix = formDataBuilder.pathSuffixForForm(props, currentFormStage);
         
         const path = formUtil.buildPathFor(props, formConfig, pathSuffix);
         
@@ -96,5 +100,5 @@ const formDataBuilder = {
     }
 };
 
-module.exports = formDataBuilder;
+export default formDataBuilder;
 

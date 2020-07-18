@@ -39,13 +39,21 @@ const webformStage = {
 
     /**
      * @param {String} stage The stage for which the next stage is returned
+     * @param {boolean} express - (optional)
      * @returns {String} The stage after the specified stage. If the specified 
      * stage is the last stage, returns the first stage.
      */
-    next: function(stage){
-        return stage === webformStage.BEGIN ? webformStage.VALIDATE :
-                stage === webformStage.VALIDATE ? webformStage.SUBMIT : 
-                webformStage.BEGIN;
+    next: function(stage, express){
+        if(stage === webformStage.BEGIN) {
+            if(express === true || express === "true") {
+                return webformStage.SUBMIT;
+            }else{
+                return webformStage.VALIDATE;
+            }
+        }else{
+            return stage === webformStage.VALIDATE ? webformStage.SUBMIT : 
+                    webformStage.BEGIN;
+        }
     }
 };
 

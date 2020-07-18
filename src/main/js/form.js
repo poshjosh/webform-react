@@ -16,7 +16,7 @@ import log from "./log";
  * @param {string} id - (optional) The id for the model. Not required for <code>create</code>
  * @param {string} basepath - (optional) The context path (without the domain). Prefix to all URLs.
  * @param {string} apibasepath - (optional) The path to the api (without the domain) e.g <code>/api</code>
- * @param {string|bool} asyncvalidation - If true validation will be done for each input as a value is entered.
+ * @param {string|bool} asyncvalidation - (optional) If true validation will be done for each input as a value is entered.
  * @param {function} onSubmit - (optional) function to handle onSubmit event
  * Takes 2 arguments, the event and an object. The object is of format:
  * <code>
@@ -27,11 +27,16 @@ import log from "./log";
  *      entity: entity
  * };
  * </code>
- * @param {function} getFormHeading - Takes 2 arguments: FormConfig {object} and stage (string).
- * @param {string} messageToDisplayWhileLoading - (optional) default = ..loading
+ * @param {function} getFormHeading - (optional) Takes 2 arguments: FormConfig {object} and stage (string).
+ * @param {boolean|string} returnHere - (optional) If true, this form will return to the
+ * referrer on completion.
+ * @param {string} - search (optional) The query to append to the URL submitted by the form
+ * @param {boolean|string} - express (optional) The default process involves
+ * the followig stages DISPLAY -> VALIDATE - SUBMIT. If express is true, then
+ * VALIDATE and SUBMIT are combined.
+ * @param {string} - messageToDisplayWhileLoading - (optional) default = ..loading
  * @param {function} getReferencedFormConfig - (optional)
  * @param {function} getReferencedFormMessage -(optional)
- * 
  * Sample referenced form config:
  * <code>
  * <pre>
@@ -197,30 +202,14 @@ class Form extends React.Component {
     }
     
     buildDefaultPath(formConfig = this.state.formConfig) {
-        return formUtil.buildPathFor(this.props, formConfig);
+        var path = formUtil.buildPathFor(this.props, formConfig);
+        path = formUtil.addReturnToIfSpecified(this.props, path);
+        path = formUtil.addSearchPropertyIfPresent(this.props, path);
+        return path;
     }
     
     loadInitialDataForConfig(formConfig = this.state.formConfig, messagesOnSuccess) {
-        
-        var path = this.buildDefaultPath(formConfig);
-  
-        // Adding the currently displaying query i.e via window.location.search
-        // proved problematic. We cannot accurately predict what the query will 
-        // contain at any given time. For example it once contained a formid
-        // for a form which had already been completed... leading to errors.
-        // 
-        // {"href":"http://localhost:9010/webform/create/post?myname=nonso","origin":"http://localhost:9010","protocol":"http:","host":"localhost:9010","hostname":"localhost","port":"9010","pathname":"/webform/create/post","search":"?myname=nonso","hash":""}
-//        log.trace("Location: ", window.location);
-//        const queryString = window.location.search;
-//        if(queryString !== null && queryString !== undefined) {
-//            if(path.indexOf('?') === -1) {
-//                log.trace("Adding query string to path: " + queryString);
-//                path = path + queryString;
-//            }else{
-//                log.debug("Path already contains a query string, so will not add: " + queryString);
-//            }
-//        }
-        
+        const path = this.buildDefaultPath(formConfig);
         this.loadInitialData(path, messagesOnSuccess);
     }
     
@@ -370,7 +359,7 @@ class Form extends React.Component {
 
     nextStage() {
         const currStage = this.state.context.stage;
-        var nextStage = webformStage.next(currStage);
+        var nextStage = webformStage.next(currStage, this.props.express);
         return nextStage;
     }
     
@@ -700,6 +689,32 @@ class FormRows extends React.Component{
         );
         
         return (formRows);
+    }
+    
+    /**
+     * @param {string} The path to append the current location to
+     * @returns {string} The updated path
+     * @deprecated Users should provide any query they intend to add (to the 
+     * path this Form component will submit to the api) via the search property. 
+     */
+    addCurrentLocation(path) {
+        // Adding the currently displaying query i.e via window.location.search
+        // proved problematic. We cannot accurately predict what the query will 
+        // contain at any given time. For example it once contained a formid
+        // for a form which had already been completed... leading to errors.
+        // 
+        // {"href":"http://localhost:9010/webform/create/post?myname=nonso","origin":"http://localhost:9010","protocol":"http:","host":"localhost:9010","hostname":"localhost","port":"9010","pathname":"/webform/create/post","search":"?myname=nonso","hash":""}
+//        log.trace("Location: ", window.location);
+//        const queryString = window.location.search;
+//        if(queryString !== null && queryString !== undefined) {
+//            if(path.indexOf('?') === -1) {
+//                log.trace("Adding query string to path: " + queryString);
+//                path = path + queryString;
+//            }else{
+//                log.debug("Path already contains a query string, so will not add: " + queryString);
+//            }
+//        }
+//        return path;
     }
 };
 

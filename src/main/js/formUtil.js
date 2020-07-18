@@ -6,6 +6,41 @@ import log from "./log";
 
 const formUtil = {
     
+    getSearchProperty: function(props) {
+        let search;
+        if(props.search) {
+            if(props.search.indexOf('?') === 0) {
+                search = props.search.substring(1, props.search.length);
+            }else{
+                search = props.search;
+            }
+        }
+        return search;
+    },
+
+    addSearchPropertyIfPresent: function(props, path) {
+        const search = formUtil.getSearchProperty(props);
+        if(search) {
+            const separator = path.indexOf('?') === -1 ? '?' : '&';
+            const update = path + separator + search;
+            log.debug("Form#addReturnToIfPresent Added `return_to` to path. Updated:\nfrom: " + path + "\n  To: " + update);
+            return update;
+        }else{
+            return path;
+        }
+    },
+    
+    addReturnToIfSpecified: function(props, path) {
+        if(props.returnHere === true || props.returnHere === "true") {
+            const separator = path.indexOf('?') === -1 ? '?' : '&';
+            const update = path + separator + "targetOnCompletion=" + window.location.pathname;
+            log.debug("FormUtil#addReturnToIfSpecified Added `return_to` to path. Updated:\nfrom: " + 
+                    path + "\n  To: " + update);
+            return update;
+        }
+        return path;
+    },
+    
     basepath: function(props) {
         return props.basepath ? props.basepath : "";
     },
