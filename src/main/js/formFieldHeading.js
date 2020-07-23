@@ -33,11 +33,11 @@ class FieldAdvice extends React.Component{
         const fieldAdviceId = formUtil.getIdForFormFieldAdvice(this.props.formMember);
         let htm;
         if(this.props.formMember.advice) {
-            htm = <span className="formFieldAdvice" id={fieldAdviceId}>
+            htm = <span className="form-field-advice" id={fieldAdviceId}>
                 &emsp;({this.props.formMember.advice})
             </span>;
         }else{
-            htm = <span className="formFieldAdvice" id={fieldAdviceId}/>;
+            htm = <span className="form-field-advice" id={fieldAdviceId}/>;
         }
         return (htm);
     }

@@ -1,7 +1,9 @@
 'use strict';
 
 import React from 'react';
+import ReactDOM from "react-dom";
 import formUtil from "./formUtil";
+import formMemberUtil from "./formMemberUtil";
 import log from "./log";
 
 const WebformInputClass = {
@@ -11,6 +13,11 @@ const WebformInputClass = {
 };
 
 class InputField extends React.Component{
+    constructor(props) {
+        super(props);
+        log.trace("Formfields.InputField#<init>. Props: ", props);
+    }
+    
     render() {
         const className = WebformInputClass.FORM_INPUT;
         return (
@@ -22,14 +29,14 @@ class InputField extends React.Component{
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
-                value={this.props.value}
+                value={formMemberUtil.getValue(this.props)}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}
                 onBlur={(e) => this.props.onBlur(this.props.formMember, e)}
-                size="35"
-                maxLength={this.props.formMember.maxLength}
-            />
+                size={formMemberUtil.getSize(this.props.formMember)}
+                maxLength={formMemberUtil.getMaxLength(this.props.formMember)}
+                />
         );
     }
 };
@@ -96,7 +103,7 @@ class SelectField extends React.Component{
                 name={this.props.formMember.name}
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
-                value={this.props.value}
+                value={formMemberUtil.getValue(this.props)}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}
@@ -127,7 +134,7 @@ class CheckBoxField extends React.Component{
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
-                checked={this.props.value === true || this.props.value === 'true'}
+                checked={formMemberUtil.isChecked(this.props)}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}
@@ -152,13 +159,13 @@ class FileField extends React.Component{
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
-                value={this.props.value}
+                value={formMemberUtil.getValue(this.props)}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}
                 onBlur={(e) => this.props.onBlur(this.props.formMember, e)}
-                size="35"
-                maxLength={this.props.formMember.maxLength}
+                size={formMemberUtil.getSize(this.props.formMember)}
+                maxLength={formMemberUtil.getMaxLength(this.props.formMember)}
             />
         );
     }
@@ -182,7 +189,7 @@ class TextAreaField extends React.Component{
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
-                value={this.props.value}
+                value={formMemberUtil.getValue(this.props)}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}

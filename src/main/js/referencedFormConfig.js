@@ -1,6 +1,7 @@
 'use strict';
 
 import formUtil from "./formUtil";
+import formMemberUtil from "./formMemberUtil";
 import log from "./log";
 
 const referencedFormConfig = {
@@ -19,10 +20,10 @@ const referencedFormConfig = {
         const targetOnCompletion = window.location.pathname + '?fid=' + props.form.id;
         const query = '?parentfid=' + props.form.id + 
                       '&targetOnCompletion=' + targetOnCompletion;
-        const path = [props.action, props.formMember.name, query];
-        const apibasepath = formUtil.apibasepath(props);
+        const apiBasePath = formUtil.apibasepath(props);
+        log.trace("ReferencedFormConfig#getLink apibasepath: " + apiBasePath);
         const link = ref === null || ref === undefined ? null : 
-                formUtil.buildPath(apibasepath, path);
+                formUtil.buildPath(apiBasePath, [props.action, props.formMember.name, query]);
         log.trace("ReferencedFormConfig#getLink: ", link);
         return link;
     },
@@ -62,12 +63,13 @@ const referencedFormConfig = {
             message: message,
             link: {href: href, text: linkText}
         };
-        log.debug("ReferencedFormConfig#getConfig: ", config);
+        log.trace("ReferencedFormConfig#getConfig: ", config);
         return config;
     },
     
     getConfig: function(props) {
         const baseConfig = referencedFormConfig.buildBaseConfig(props);
+        log.trace("ReferencedFormConfig#getConfig baseConfig: ", baseConfig);
         let config;
         if(props.getReferencedFormConfig) {
             config = props.getReferencedFormConfig(props.form, props.formMember, baseConfig);
@@ -77,6 +79,7 @@ const referencedFormConfig = {
         }else {
             config = baseConfig;
         }
+        log.trace("ReferencedFormConfig#getConfig output: ", config);
         return config;
     }
 };

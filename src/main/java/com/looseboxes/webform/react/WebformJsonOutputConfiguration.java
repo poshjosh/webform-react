@@ -26,7 +26,7 @@ public class WebformJsonOutputConfiguration
     public WebformJsonOutputConfiguration(TypeTests typeTests) {
         super(typeTests);
     }
-    
+
     public Set<String> getFieldsToIgnore() {
         // @TODO Make this a property
         return Collections.singleton("password");

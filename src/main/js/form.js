@@ -6,9 +6,10 @@ import client from "./client";
 import FormRow from "./formRow";
 import formDataBuilder from "./formDataBuilder";
 import formUtil from "./formUtil";
+import formMemberUtil from "./formMemberUtil";
 import webformStage from "./webformStage";
 import log from "./log";
-//log.init({logLevel: 'debug'});
+log.init({logLevel: 'debug'});
 
 /**
  * @param {string} action - One of: [create|read|update|delete]
@@ -35,8 +36,24 @@ import log from "./log";
  * the followig stages DISPLAY -> VALIDATE - SUBMIT. If express is true, then
  * VALIDATE and SUBMIT are combined.
  * @param {string} - messageToDisplayWhileLoading - (optional) default = ..loading
+ * 
+ * @param {function} onSuccessInitialLoad - (optional) Takes 2 argument. The path
+ * that was requested and the state update; returns the updated state.
+ * <code>onSuccessInitialLoad(path, stateUpdate)</code>
+ * 
+ * Sample state:
+ * <code><pre>
+ *      {
+ *          context: {stage: webformStage.BEGIN},
+ *          formConfig: formConfig,
+ *          values: formValues,
+ *           messages: messages
+ *      };
+ * </pre></code>
+ * 
  * @param {function} getReferencedFormConfig - (optional)
  * @param {function} getReferencedFormMessage -(optional)
+ * 
  * Sample referenced form config:
  * <code>
  * <pre>
@@ -99,7 +116,7 @@ class Form extends React.Component {
     updateStates(update, replace = false) {
         log.trace("Form#updateStates. Update: ", update);
         this.setState(function(state, props) {
-            if(replace) {
+            if(replace === true) {
                 return update;
             }else{
                 return formUtil.updateObject(state, update);
@@ -126,19 +143,17 @@ class Form extends React.Component {
     
     printMessages(response) {
         // Sample format of both errors & messages
-        // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
-        // Recently a single message was of format: ["handle: must not be blank"]
-        const errors = response.entity["webform.messages.errors"];
+        const errors = response.entity.errors;
 
-        const infos = response.entity["webform.messages.infos"];
+        const infos = response.entity.infos;
         
         const messages = { errors: null, infos: null };
         if(errors) {
-            log.debug("Errors: ", errors); // Errors: ["handle: must not be blank"]
+            log.debug("Errors: ", errors); 
             messages.errors = errors;
         }
         if(infos) {
-            log.debug("Infos: ", infos);
+            log.trace("Infos: ", infos);
             messages.infos = infos;
         }
         
@@ -167,12 +182,23 @@ class Form extends React.Component {
         formUtil.logResponse(response, "Form#onSuccessInitialLoad");
         
         const formConfig = response.entity;
+        log.trace("Form#onSuccessInitialLoad ", formConfig);
+//        log.trace("Form#onSuccessInitialLoad ", formConfig.form);
         
         const formValues = formUtil.collectFormData(formConfig);
         
-        const stateUpdate = this.getRefreshedState(formConfig, formValues, messages);
+        var stateUpdate = this.getRefreshedState(formConfig, formValues, messages);
         
         stateUpdate.doneInitialLoadData = true;
+
+        if(this.props.onSuccessInitialLoad) {
+            
+            const ret = this.props.onSuccessInitialLoad(path, stateUpdate);
+            
+            if(ret) {
+                stateUpdate = ret;
+            }
+        }
         
         this.updateStates(stateUpdate);
     }
@@ -239,6 +265,7 @@ class Form extends React.Component {
     }
 
     handleEvent(event, eventName, formMember) {
+//        log.debug("Form#handleEvent entering");        
 
         // We don't need preventDefault for onChange etc
         // We particularly need it for onSubmit
@@ -246,22 +273,24 @@ class Form extends React.Component {
         // 
 //        event.preventDefault();
         
-        formUtil.logEvent(event, eventName);
+//        formUtil.logEvent(event, eventName);
         
         const eventTarget = event.target;
+//        log.debug("Form#handleEvent " + eventName);        
         
         // HTML option tags do not contain a name, the name is specified at
         // the parent select tag. However it is the option that receives events
         // So in such cases we extract the name from the formMember
         const name = eventTarget.name ? eventTarget.name : formMember.name;
+//        log.debug("Form#handleEvent target name: " + name);        
         
         const value = this.getEventTargetValue(event, formMember);
                 
-        log.trace(() => eventName + " " + name + " = " + value);        
-        
+        log.trace(() => "Form#handleEvent " + eventName + " " + name + " = " + value);        
+
         // onChange event is not sent to the server
         if(eventName === "onChange") {
-            
+
             this.updateValues({ [name]: value });
             
             return;
@@ -276,7 +305,7 @@ class Form extends React.Component {
         const clientConfig = formDataBuilder.buildHttpConfigForFormMember(
                 this.state.formConfig, eventName, name, value, this.props);
         
-        log.debug("Form#handleEvent, submitting: " + 
+        log.trace("Form#handleEvent, submitting: " + 
                 clientConfig.path + "\n", clientConfig);
         
         client(clientConfig).done(response => {
@@ -329,18 +358,20 @@ class Form extends React.Component {
         }else{
             accepted = true;
         }
-        log.trace("Form#isEventAccepted. accepted: " + 
+        log.trace(() => "Form#isEventAccepted. accepted: " + 
                 accepted + ", FormMember: " + formMember.name);
         return accepted;
     }
 
     onChange(formMember, event) {
+        log.trace("Form#onChange: ", event.target.value)
         if(this.isEventAccepted(event, formMember)) {
             this.handleEvent(event, "onChange", formMember);
         }
     }
     
     onClick(formMember, event) {
+        log.trace("Form#onClick: ", event.target.value)
         if(this.isEventAccepted(event, formMember)) {
             const value = this.getEventTargetValue(event, formMember);
             if(value !== null && value !== "" && value !== undefined) {
@@ -350,6 +381,7 @@ class Form extends React.Component {
     }
     
     onBlur(formMember, event) {
+        log.trace("Form#onBlur: ", event.target.value)
         if(this.props.asyncvalidation === true || this.props.asyncvalidation === 'true') {
             if(this.isEventAccepted(event, formMember)) {
                 this.handleEvent(event, "onBlur", formMember);
@@ -386,9 +418,8 @@ class Form extends React.Component {
                 formConfig === null || formConfig === undefined) {
             result = false;
         }else{
-            const path = [formConfig.action];
             const basepath = formUtil.basepath(this.props);
-            const rhs = formUtil.buildPath(basepath, path);
+            const rhs = formUtil.buildPath(basepath, [formConfig.action]);
             result = path.indexOf(rhs) === 0;
             log.debug(() => "Form#pathMatchesFormConfig " + 
                     result + ", lhs: " + path + ", rhs: " + rhs);
@@ -396,7 +427,7 @@ class Form extends React.Component {
         return result;
     }
     
-    onSuccessSubmit(response, target) {
+    onSuccessSubmit(response, requestedPath) {
 
         formUtil.logResponse(response, "Form#onSuccessSubmit");
         
@@ -456,8 +487,8 @@ class Form extends React.Component {
                     }else{    
 
                         // Add the newly created entity to the formConfig
-                        formUtil.addNewlyCreatedToForm(response, pendingFormConfig);
-
+                        const updatedFormMember = formMemberUtil.addNewlyCreated(response, pendingFormConfig);
+                        
                         // This contains web page path: /webform/create/post?fid=form172d4d3fa82
                         // However, we want api path: /api/webform/create/post?fid=form172d4d3fa82
                         // So we do some formatting
@@ -474,8 +505,13 @@ class Form extends React.Component {
                             var formValues = formUtil.collectFormData(formConfig);
 
                             formValues = formUtil.collectFormData(pendingFormConfig, formValues);
+                            if(updatedFormMember !== null && updatedFormMember !== undefined) {
+                                formValues[updatedFormMember.name] = updatedFormMember.value;
+                                log.trace(() => "Updated form value: " + 
+                                        updatedFormMember.name + " = " + updatedFormMember.value);
+                            }
 
-                            log.debug("Form#onSuccessSubmit form values: ", formValues);
+                            log.trace("Form#onSuccessSubmit form values: ", formValues);
 
                             const stateUpdate = this.getRefreshedState(
                                     {}, formValues, this.getSuccessMessage());
@@ -573,6 +609,8 @@ class Form extends React.Component {
     render() { 
         
         const form = this.state.formConfig !== null ? this.state.formConfig.form : null;
+        
+        log.trace("Form#render state.values: ", this.state.values);
         formUtil.logForm(form, "Form#render");
              
         let htm;
@@ -591,15 +629,34 @@ class Form extends React.Component {
             const formHeading = this.getFormHeading();
             const headingHtm = formHeading === undefined && formHeading === null ? "" :
                     <div className="form-heading">{formHeading}</div>;
+
+            const errors = this.state.messages.errors;
+            log.trace("Form#render errors: ", errors);
+            let errorMsg;
+            if(errors && errors.length == 1) {
+                errorMsg = "Please review one error below";
+            }else if(errors && errors.length > 1) {
+                errorMsg = "Please review " + errors.length + " errors below"
+            }else{
+                errorMsg = null;
+            }
+            const errorHtm = errorMsg === null ? null : <div autoFocus className="error-message">{errorMsg}</div>;
+            
+            const infos = this.state.messages.infos;
+            log.trace("Form#render infos: ", infos);
+            
             htm = <form>
     
                 {headingHtm}
                 
-                <FormMessages id="errors" ref="errors" className="error-message" messages={this.state.messages.errors}/>
-                <FormMessages id="infos" ref="infos" className="info-message" messages={this.state.messages.infos}/>
+                {errorHtm}
+                
+                <FormMessages id="infos" ref="infos" 
+                              className="info-message" 
+                              messages={infos}/>
                 
                 <FormRows {...(this.props)}
-                          errors={this.state.messages.errors}
+                          errors={errors}
                           form={form} 
                           values={this.state.values} 
                           disabled={this.isFormDisabled()} 
@@ -625,34 +682,39 @@ class FormMessages extends React.Component{
         log.trace("FormMessages#hasValues: ", result);
         return result;
     }
+    toDisplayFormat(message) {
+        if(message.fieldName) {
+            return message.fieldName + ": " + message.message;        
+        }else{
+            return message.message;
+        }
+    }
     render() {
-        // Sample format
-        // {"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}
-        // Recently a single message was of format: ["handle: must not be blank"]
         log.trace("FormMessages#render messages: ", this.props.messages);
         const hasMessages = this.hasValues(this.props.messages);
         const messageRows = hasMessages === false ? null : 
                 Object.values(this.props.messages).map((message, index) => 
-                <div key={this.props.id + '-'+ index} className={this.props.className}>{message}</div>
+                <div key={"message-group-message-" + this.props.id + '-'+ index} 
+                     className={this.props.className}>
+                     {this.toDisplayFormat(message)}
+                </div>
         );
-        return messageRows === null ? null : <div className="message-group">{messageRows}</div>;
+        return messageRows === null ? null : <div autoFocus className="message-group">{messageRows}</div>;
     }
 };
 
 class FormRows extends React.Component{
-    
     /**
      * A message is for a specific node if it starts with the 
      * <code>node.id</code> or <code>node.name</code>
      * 
      * @param {object} messages A collection of messages
-     * Format <code>{"0":"The following field(s) have errors","1":"type: must not be null","2":"handle: must not be blank"}</code>
      * @param {object} formMember The formMember whose HTML node messages will 
      * be collected for.
      * @param {array} collectInto Optional array to collect the formMember 
      * specific messages into.
      * @returns {array} An array of zero or more messages specific to the 
-     * specified formMember. Format <code>["type: must not be null"]</code>
+     * specified formMember. 
      */
     collectFormMemberMessages(messages, formMember, collectInto = []) {
         
@@ -660,7 +722,7 @@ class FormRows extends React.Component{
             
             messages.forEach((errMsg, index) => {
 
-                if(errMsg.startsWith(formMember.name)) {
+                if(errMsg.fieldName === formMember.name) {
 
                     collectInto[index] = errMsg;
                 }
@@ -671,21 +733,26 @@ class FormRows extends React.Component{
     }
     
     getValue(name) {
-        return ! this.props.values ? '' : 
-               ! this.props.values[name] ? '' : this.props.values[name];
+        return this.props.values[name];
     }
     
     render() {
         
         const formRows = this.props.form.members
             .filter((formMember) => formMember.type !== 'hidden')
-            .map(formMember =>
+            .map(formMember => 
                 <FormRow {...(this.props)}
                          errors={this.collectFormMemberMessages(this.props.errors, formMember)}
+                         form={this.props.form} 
+                         value={this.getValue(formMember.name)} 
+                         disabled={this.props.disabled} 
+                         onChange={this.props.onChange}
+                         onClick={this.props.onClick}
+                         onBlur={this.props.onBlur}
+                         onBeginReferencedForm={this.props.onBeginReferencedForm}
                          key={formMember.id + '-row'} 
                          ref={formMember.id + '-row'}   
-                         formMember={formMember} 
-                         value={this.getValue(formMember.name)}/>
+                         formMember={formMember}/>
         );
         
         return (formRows);

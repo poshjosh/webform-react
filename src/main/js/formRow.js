@@ -17,7 +17,7 @@ class FormRow extends React.Component{
     
     constructor(props) {
         super(props);
-        log.trace("FormRow#<init>. Props: ", this.props);
+        log.trace("FormRow#<init>. Props: ", props);
         this.state = {multiChoice : this.isMultiChoice()};
     }
     
@@ -48,6 +48,8 @@ class FormRow extends React.Component{
     
     getFormField() {
         
+        log.trace("FormRow#getFormField props.formMember: ", this.props.formMember);
+        
         let formField;
         
         if(this.isMultiChoice()) {
@@ -61,7 +63,7 @@ class FormRow extends React.Component{
         }else if(this.props.formMember.type === 'checkbox') {
             formField = (<CheckBoxField formid={this.props.form.id}
                                       formMember={this.props.formMember}
-                                      value={this.props.value}
+                                      checked={this.props.value}
                                       disabled={this.props.disabled}
                                       onChange={this.props.onChange}
                                       onClick={this.props.onClick}
@@ -77,12 +79,12 @@ class FormRow extends React.Component{
         }else{
             if(this.props.formMember.numberOfLines < 2) {
                 formField = (<InputField formid={this.props.form.id}
-                                          formMember={this.props.formMember}
-                                          value={this.props.value}
-                                          disabled={this.props.disabled}
-                                          onChange={this.props.onChange}
-                                          onClick={this.props.onClick}
-                                          onBlur={this.props.onBlur}/>);
+                                         formMember={this.props.formMember}
+                                         value={this.props.value}
+                                         disabled={this.props.disabled}
+                                         onChange={this.props.onChange}
+                                         onClick={this.props.onClick}
+                                         onBlur={this.props.onBlur}/>);
             }else{
                 formField = (<TextAreaField formid={this.props.form.id}
                                           formMember={this.props.formMember}
@@ -93,6 +95,7 @@ class FormRow extends React.Component{
                                           onBlur={this.props.onBlur}/>);
             }
         }
+        
         return formField;
     }
     
@@ -107,32 +110,39 @@ class FormRow extends React.Component{
                 ", Value: " + this.props.value + ", choices: " +
                 (choices ? Object.keys(choices).length : null));
         
-        
         const config = referencedFormConfig.getConfig(this.props);
         
         const fieldMessageId = formUtil.getIdForFormFieldMessage(this.props.formMember);
         
-        const prop = this.props.errors;
-        // This should be an array
-        const errors = typeof(prop) === 'object' ? Object.values(prop) : prop;
-        const hasErrors = (errors !== null && errors !== undefined && errors.length > 0);
-        const errorHtml = hasErrors === false ? null : errors
-                .map((error, index) => <div>{error}</div>
+        const errorProp = this.props.errors;
+        const errorArray = typeof(errorProp) === 'object' ? Object.values(errorProp) : errorProp;
+        const hasErrors = (errorArray !== null && errorArray !== undefined && errorArray.length > 0);
+        const errorHtm = hasErrors === false ? null : errorArray
+                .map((error, index) => {
+                    if(error.fieldName) {
+                        const id = fieldMessageId + "-" + index;
+                        return <div key={id} id={id}>
+                            {"Invalid '" + error.fieldName + "': " + error.message}
+                            </div>;
+                    }else{
+                        return <div key={id} id={id}>{"Error: " + error.message}</div>;
+                    }
+                }    
         );
 
-        log.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtml);
+        log.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtm);
 
         return (
-            <div className="form-row">
+            <div className="form-row" key={"form-row-" + this.props.formMember.id}>
     
                 {(hasErrors === true && 
-                        <div className="formFieldMessage" id={fieldMessageId}>{errorHtml}</div>)}
+                        <div className="error-message" id={fieldMessageId}>{errorHtm}</div>)}
                 
                 <FieldHeading formMember={this.props.formMember}/>
 
                 {(this.props.formMember.type === 'checkbox') && (' ') || (<br/>)}
 
-                {config.displayField && this.getFormField()}
+                {config.displayField === true && this.getFormField()}
                 
                 {config.displayLink && (
                         <tt>{config.message}

@@ -116,49 +116,6 @@ const formUtil = {
         return result;
     },
 
-    /**
-     * Update the appropriate form member with the value gotten from the newly 
-     * created entity.
-     * 
-     * This method makes use of the {XMLHttpRequest.response.headers.Location}
-     * property to determine which form member to update and also the id of the
-     * newly created. The value of the form member selected for update is 
-     * set to the value of the id of the newly created entity.
-     * 
-     * @param {XMLHttpRequest.response} response
-     * @param {Form.formConfig} formConfig
-     * @returns {boolean} true if form was updated with newly created, otherwise false
-     */
-    addNewlyCreatedToForm: function(response, formConfig) {
-        var added = false;
-        log.trace("Form#addNewlyCreatedToForm ", response.entity);
-        if(response.entity && formConfig.form.members) {
-            //Format:  {"Location":"http://localhost:9010/read/blog/1"}
-            const loc = response.headers['Location'];
-            log.trace("Form#addNewlyCreatedToForm Response.headers.Location: ", loc);
-            if(loc) {
-                formConfig.form.members.forEach((formMember, index) => {
-                    var tgt = "/" + formMember.name + "/";
-                    var pos = loc.indexOf(tgt);
-                    if(pos === -1) {
-                        tgt = "/" + formMember.name.toLowerCase() + "/";
-                        pos = loc.indexOf(tgt);
-                    }
-                    if(pos !== -1) {
-                        const idString = loc.substring(pos + tgt.length, loc.length);
-                        const id = parseInt(idString, 10);
-                        formMember.value = id;
-                        added = true;
-                        log.debug(() => "Form#addNewlyCreatedToForm set " + 
-                                formConfig.form.name + "#" + formMember.name + 
-                                " = " + formMember.value);
-                    }
-                });
-            }
-        }
-        return added;
-    },
-
     updateMultiChoice(formConfig, formMember, choiceMappings) {
         
         log.trace(() => "Updating Form." + formMember.name + 
@@ -262,17 +219,22 @@ const formUtil = {
             }
         });
         
+        log.trace("FormUtil#collectFormData ", collectInto);
+        
         return collectInto;
     },
     
     collectConfigData: function(formConfig, collectInto = {}) {
         
+        //@related(FormConfig.fields) to back-end api
         // collect special fields used by the api
         formUtil.updateValue('parentfid', collectInto, formConfig);
         formUtil.updateValue('fid', collectInto, formConfig);
         formUtil.updateValue('id', collectInto, formConfig);
         formUtil.updateValue('targetOnCompletion', collectInto, formConfig);
         formUtil.updateValue('modelfields', collectInto, formConfig);
+        formUtil.updateValue('uploadedFiles', collectInto, formConfig);
+//        formUtil.updateValue('stage', collectInto, formConfig);
         log.trace("formUtil#collectConfigData. ", collectInto);
         
         return collectInto;
@@ -304,10 +266,7 @@ const formUtil = {
         }
     },
     
-    logForm: function(form, id, logLevel) {
-        if( ! logLevel) {
-            logLevel = 'trace';
-        }
+    logForm: function(form, id, logLevel = "trace") {
         log.log(logLevel, () => 
             "formUtil->" + id + 
             "-> Form. name: " + (form ? form.name : null) + 
@@ -315,20 +274,14 @@ const formUtil = {
         );
     },
     
-    logResponse: function(response, id, logLevel) {
-        if( ! logLevel) {
-            logLevel = 'debug';
-        }
+    logResponse: function(response, id, logLevel = "trace") {
         log.log(logLevel, () => 
             "formUtil->" + id + "-> Response.headers: " + 
             (response ? log.toMessage(response.headers) : null)
         );
     },
 
-    logEvent: function(event, id, logLevel) {
-        if( ! logLevel) {
-            logLevel = 'trace';
-        }
+    logEvent: function(event, id, logLevel = "trace") {
         log.log(logLevel, () => 
                 "formUtil->" + id + "-> Event.target: " + 
                 event.target.name + "=" + event.target.value);
