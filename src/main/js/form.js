@@ -9,7 +9,7 @@ import formUtil from "./formUtil";
 import formMemberUtil from "./formMemberUtil";
 import webformStage from "./webformStage";
 import log from "./log";
-log.init({logLevel: 'debug'});
+//log.init({logLevel: 'debug'});
 
 /**
  * @param {string} action - One of: [create|read|update|delete]
