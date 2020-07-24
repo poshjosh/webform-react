@@ -42,51 +42,54 @@ class InputField extends React.Component{
 };
 
 class SelectField extends React.Component{
-    
-    listItemAt(index) {
-        
-        const choices = this.props.formMember.choices;
-        
-        const enumOrdinal = index;
-        
-        const val = choices[enumOrdinal];
-            
-        const selected = enumOrdinal === this.props.value || val === this.props.value;
 
-        log.trace(() => "SelectField#listItemAt. " + 
-                enumOrdinal + " = " + val + ", selected: " + selected);
+    /**
+     * @param {object} choice - format <code>{"text":"Unactivated","value":0}</code>
+     * @returns {string} html generated for the specified choice
+     */
+    optionHtm(choice) {
+        
+        const selected = choice.value === this.props.value;
 
+        log.trace(() => "SelectField#listItem. " + 
+                this.props.formMember.name + " = " + choice.value + 
+                ", selected: " + selected);
+
+        const optionId = formUtil.getIdForSelectOption(this.props.formMember, choice);
+
+//If you add the following property ( selected={selected} ), you get warning:
 //Warning: Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>.
-//            selected={selected}
-        const optionId = formUtil.getIdForSelectOptionAt(this.props.formMember, enumOrdinal);
-
+//            
         const htm = <option 
             ref={optionId}
             id={optionId}
             key={optionId}
             disabled={this.props.disabled}
             name={this.props.formMember.name}
-            value={enumOrdinal}>
-            {val}
+            value={choice.value}>
+            {choice.text}
         </option>;
 
-        log.trace("SelectField#listItemAt. ", htm);        
+        log.trace("SelectField#listItem. ", htm);        
 
         return htm;
     }
     
     render() {
         
+        // choices format = {"0":"Unactivated","1":"Activated","2":"Deactivated"}
         const choices = this.props.formMember.choices;
         
-        const itemCount = Object.keys(choices).length;
+        const itemCount = choices.length;
 
         log.trace("SelectField#render. Choices: ", choices);
         log.trace("SelectField#render. Choices: ", itemCount);
         
         const options = [];
-        for(const index in choices) {
-            const htm = this.listItemAt(index);
+
+        // choices format = [{"text":"Unactivated","value":0},{"text":"Activated","value":1}]        
+        for(const choice of choices) {
+            const htm = this.optionHtm(choice);
             options.push(htm);                 
         }
         

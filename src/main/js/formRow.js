@@ -102,6 +102,8 @@ class FormRow extends React.Component{
     render() {
 
         const multiChoice = this.isMultiChoice();
+        
+        // choices format = {"0":"Unactivated","1":"Activated","2":"Deactivated"}
         const choices = this.props.formMember.choices;
         
         log.trace(() => "FormRow#render. Type: " + this.props.formMember.type + 

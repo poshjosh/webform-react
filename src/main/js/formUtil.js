@@ -123,7 +123,7 @@ const formUtil = {
         
         // FormMember format 
         // {"id":"country","name":"country","label":"Country","advice":null,
-        //  "value":null,"choices":{"0":"NIGERIA"},"maxLength":-1,"size":35,
+        //  "value":null,"choices":[{"text":"Unactivated","value":0},{"text":"Activated","value":1}],"maxLength":-1,"size":35,
         //  "numberOfLines":1,"type":"text","referencedFormHref":null,
         //  "referencedForm":null,"optional":false,"multiChoice":true,
         //  "multiple":false,"displayName":"Country","required":true,
@@ -132,6 +132,7 @@ const formUtil = {
             for(const key in choiceMappings) {
                 const memberName = member['name'];
                 if(memberName === key) {
+                    // choices format = [{"text":"Unactivated","value":0},{"text":"Activated","value":1}]
                     const choices = choiceMappings[key];
                     log.trace(() => "Updating FormMember: " + memberName + 
                             " with choices: " + log.toMessage(choices));
@@ -248,10 +249,10 @@ const formUtil = {
         return formMember.id + '-message';
     },
 
-    getIdForSelectOptionAt: function(formMember, index) {
+    getIdForSelectOption: function(formMember, option) {
         errors.requireValue("formMember", formMember);
-        errors.requireValue("index", index);
-        return formMember.id + '-' + index;
+        errors.requireValue("index", option.value);
+        return formMember.id + '-' + option.value;
     },
     
     getIdForDefaultSelectOption: function(formMember) {
