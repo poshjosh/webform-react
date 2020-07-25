@@ -77,7 +77,6 @@ class SelectField extends React.Component{
     
     render() {
         
-        // choices format = {"0":"Unactivated","1":"Activated","2":"Deactivated"}
         const choices = this.props.formMember.choices;
         
         const itemCount = choices.length;
@@ -87,7 +86,7 @@ class SelectField extends React.Component{
         
         const options = [];
 
-        // choices format = [{"text":"Unactivated","value":0},{"text":"Activated","value":1}]        
+        // choices format = [{"value":0,"text":"Unactivated"},{"value":1,"text":"Activated"}]        
         for(const choice of choices) {
             const htm = this.optionHtm(choice);
             options.push(htm);                 
@@ -151,11 +150,14 @@ class CheckBoxField extends React.Component{
  * We display file input as text if the form field is disabled 
  */
 class FileField extends React.Component{
+    isDisabled() {
+        return this.props.disabled === true || this.props.disabled === "true" ? true : false;
+    }
     render() {
         const className = WebformInputClass.FORM_INPUT;
         return (
             <input className={className + ' ' + this.props.formMember.type} 
-                type={this.props.disabled ? 'text' : 'file'}
+                type={this.isDisabled() ? 'text' : 'file'}
                 disabled={this.props.disabled} 
                 required={this.props.formMember.required}
                 form={this.props.formid}

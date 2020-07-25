@@ -51,7 +51,7 @@ const referencedFormConfig = {
         const message = multiChoice === true ? 
                 "Select " + refName + " or " : props.formMember.required ?
                 refName + " is required. " : "";
-        const linkText = hasLinkToRef ? "Create one" : "";
+        const linkText = hasLinkToRef ? "Click here to add " + refName : "";
         const displayField = (hasLinkToRef === false || multiChoice === true);
         const value = props.formMember.value;
         const hasValue = value !== null && value !== "" && value !== undefined;

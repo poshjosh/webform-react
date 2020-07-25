@@ -110,7 +110,7 @@ class FormRow extends React.Component{
                 ", MultiChoice: " + multiChoice +
                 ", Name: " + this.props.formMember.name + 
                 ", Value: " + this.props.value + ", choices: " +
-                (choices ? Object.keys(choices).length : null));
+                (choices ? choices.length : null));
         
         const config = referencedFormConfig.getConfig(this.props);
         

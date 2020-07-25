@@ -44,7 +44,7 @@ const formDataBuilder = {
         
         const pathSuffix = formDataBuilder.pathSuffixForFormMember(eventName);
         
-        const path = formUtil.buildPathFor(props, formConfig, pathSuffix);
+        const path = formUtil.buildPathFor(props, formConfig, {suffix:pathSuffix, addId:false});
         
         log.trace("FormDataBuilder#buildClientConfigForFormMember. POST ", path);
         
@@ -86,15 +86,29 @@ const formDataBuilder = {
         return suffix;
     },
     
+    shouldAddIdIfPresent: function(values) {
+        // If you post a form with data including a value for id, and you also
+        // pass id as a query, then some APIs will return an array of ids with 
+        // both values. WE DON'T WANT THAT. So we only add the id as a part of
+        // the query if it is not part of the form data/entity being posted.
+        //
+        const result = values.id === null || values.id === undefined || values.id === "" ? true : false;
+        log.debug("Should add id: " + result + ", values: ", values);
+        return result;
+    },
+    
+    
     buildHttpConfigForForm: function(formConfig, eventName, values, currentFormStage, props) {
+
+        const entity = formDataBuilder.forForm(formConfig, eventName, values);
         
         const pathSuffix = formDataBuilder.pathSuffixForForm(props, currentFormStage);
         
-        const path = formUtil.buildPathFor(props, formConfig, pathSuffix);
+        const addId = formDataBuilder.shouldAddIdIfPresent(entity);
+        
+        const path = formUtil.buildPathFor(props, formConfig, {suffix:pathSuffix, addId:addId});
         
         log.trace("FormDataBuilder#buildClientConfigForFormr. POST ", path);
-        
-        const entity = formDataBuilder.forForm(formConfig, eventName, values);
      
         return formDataBuilder.newFormDataClientConfig(path, entity);
     }

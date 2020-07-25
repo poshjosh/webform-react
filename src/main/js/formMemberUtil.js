@@ -4,6 +4,10 @@ import log from './log';
 
 const formMemberUtil = {
     
+    hasValue: function(arg) {
+        return arg !== null && arg !== undefined;
+    },
+    
     /**
      * Get the FormMember.dataType property
      * 
@@ -106,7 +110,7 @@ const formMemberUtil = {
     },
 
     getValue: function(props, resultIfNone = "") {
-        return props.value ? props.value : resultIfNone;
+        return formMemberUtil.hasValue(props.value) ? props.value : resultIfNone;
     },
 
     getSize: function(props, resultIfNone = 35) {
@@ -119,7 +123,7 @@ const formMemberUtil = {
 
     getNumberProperty: function(props, name, resultIfNone = 35) {
         const value = props[name];
-        if(value) {
+        if(formMemberUtil.hasValue(value)) {
             if(typeof value === 'number') {
                 return value;
             }else{
@@ -136,7 +140,7 @@ const formMemberUtil = {
 
     getBooleanProperty: function(props, name, resultIfNone = false) {
         const value = props[name];
-        if(value) {
+        if(formMemberUtil.hasValue(value)) {
             if(typeof value === 'boolean') {
                 return value;
             }else{

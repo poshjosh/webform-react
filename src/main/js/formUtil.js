@@ -83,15 +83,21 @@ const formUtil = {
     buildPath: function(basepath, paths = []) {
         var result = errors.requireValue("FormUtil#buildPath(basepath,", basepath);
         for(const path of paths) {
-            if(path !== null && path !== undefined) {
+            if(path !== null && path !== undefined && path !== "") {
                 result = result + "/" + path;
             }
         }
         log.trace("FormUtil#buildPath Output: " + result);
         return result;
     },
-    
-    buildPathFor: function(props, formConfig, suffix) {
+
+    /**
+     * @param {object} props
+     * @param {object} formConfig
+     * @param {object} config - format: {suffix: "any suffix", addId:true}
+     * @returns {String}
+     */
+    buildPathFor: function(props, formConfig, config = {addId:true}) {
         const action = formConfig ? formConfig.action : props.action;
         const modelname = formConfig ? formConfig.modelname : props.modelname;
         var modelid = formConfig ? formConfig.id : props.id;
@@ -99,14 +105,21 @@ const formUtil = {
             modelid = formConfig ? formConfig.mid : props.mid;
         }
         
-        if(modelid) {
-            if(suffix) {
-                const conn = suffix.indexOf("?") === -1 ? "?" : "&";
-                suffix = suffix + conn + "id=" + modelid;
-                modelid = null;
+        const hasId = modelid !== null && modelid !== undefined && modelid !== "";
+        
+        const configHasSuffix = config.suffix !== null && config.suffix !== undefined && config.suffix !== "";
+
+        var suffix = config.suffix;
+        if(config.addId === true && hasId === true) {
+            if(configHasSuffix === true) {
+                const conn = config.suffix.indexOf("?") === -1 ? "?" : "&";
+                suffix = config.suffix + conn + "id=" + modelid;
             }else{
-                modelid = "?id=" + modelid;
+                suffix = "?id=" + modelid;
             }
+            modelid = null;
+        }else{
+            modelid = null;
         }
         
         const path = [action, modelname, modelid, suffix];

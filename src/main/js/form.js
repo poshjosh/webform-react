@@ -8,6 +8,7 @@ import formDataBuilder from "./formDataBuilder";
 import formUtil from "./formUtil";
 import formMemberUtil from "./formMemberUtil";
 import webformStage from "./webformStage";
+import TitleOfMessagesAutoFocused from "./titleOfMessagesAutoFocused";
 import log from "./log";
 //log.init({logLevel: 'debug'});
 
@@ -51,6 +52,7 @@ import log from "./log";
  *      };
  * </pre></code>
  * 
+ * @param {boolean} logLevel - (optional) Any of: [error|warn|info|debug|trace]
  * @param {function} getReferencedFormConfig - (optional)
  * @param {function} getReferencedFormMessage -(optional)
  * 
@@ -82,6 +84,10 @@ class Form extends React.Component {
 
     constructor(props) {
         super(props);
+        const logLevel = props.logLevel;
+        if(logLevel !== null && logLevel !== undefined && logLevel !== "") {
+            log.init({logLevel: logLevel});
+        }
         log.debug("Form#<init>. Props: ", this.props);
         
         this.state = this.getInitialState();
@@ -91,6 +97,8 @@ class Form extends React.Component {
         this.onBlur = this.onBlur.bind(this);
         this.onSubmit = this.onSubmit.bind(this);
         this.onBeginReferencedForm = this.onBeginReferencedForm.bind(this);
+
+        this.messagesTitleRef = React.createRef();
     }
     
     // pendingFormConfig is used to offload the current formConfig if we have
@@ -256,7 +264,11 @@ class Form extends React.Component {
 
     componentDidMount() {
         this.loadInitialDataForConfig();
+        if(this.messagesTitleRef && this.messagesTitleRef.current) {
+            this.messagesTitleRef.current.focus();
+        }
     }
+    
 
     getEventTargetValue(event, formMember) {
         const eventTarget = event.target;
@@ -631,29 +643,23 @@ class Form extends React.Component {
                     <div className="form-heading">{formHeading}</div>;
 
             const errors = this.state.messages.errors;
-            log.trace("Form#render errors: ", errors);
-            let errorMsg;
-            if(errors && errors.length == 1) {
-                errorMsg = "Please review one error below";
-            }else if(errors && errors.length > 1) {
-                errorMsg = "Please review " + errors.length + " errors below"
-            }else{
-                errorMsg = null;
-            }
-            const errorHtm = errorMsg === null ? null : <div autoFocus className="error-message">{errorMsg}</div>;
             
             const infos = this.state.messages.infos;
             log.trace("Form#render infos: ", infos);
             
+            const keyToEnsureReRender =  new Date().getTime();
+            
+            // No refs for function components i.e TitleOfMessagesAutoFocused below
+            //
             htm = <form>
     
                 {headingHtm}
                 
-                {errorHtm}
+                <TitleOfMessagesAutoFocused 
+                              id="errors" className="error-message" errors={errors}/>
                 
-                <FormMessages id="infos" ref="infos" 
-                              className="info-message" 
-                              messages={infos}/>
+                <FormMessages ref={this.messagesTitleRef} 
+                              id="infos" className="info-message" messages={infos}/>
                 
                 <FormRows {...(this.props)}
                           errors={errors}
@@ -664,7 +670,7 @@ class Form extends React.Component {
                           onClick={this.onClick}
                           onBlur={this.onBlur}
                           onBeginReferencedForm={this.onBeginReferencedForm}/>
-
+                
                 <button type="reset" className="button">Reset</button>
                 &nbsp;        
                 <button type="submit" className="button primary-button" 
@@ -699,7 +705,7 @@ class FormMessages extends React.Component{
                      {this.toDisplayFormat(message)}
                 </div>
         );
-        return messageRows === null ? null : <div autoFocus className="message-group">{messageRows}</div>;
+        return messageRows === null ? null : <div className="message-group">{messageRows}</div>;
     }
 };
 
