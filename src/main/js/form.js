@@ -570,7 +570,11 @@ class Form extends React.Component {
         
         if(this.props.onSubmit) {
             
-            this.props.onSubmit(event, clientConfig);
+            const updatedConfig = this.props.onSubmit(event, clientConfig);
+            
+            if(updatedConfig) {
+                clientConfig = updatedConfig;
+            }
             
         }else{
             
