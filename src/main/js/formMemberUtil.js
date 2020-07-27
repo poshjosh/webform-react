@@ -4,8 +4,32 @@ import log from './log';
 
 const formMemberUtil = {
     
+    isMultiChoice: function(formMember) {
+        const multiChoice = formMember.multiChoice;
+        return multiChoice === true || multiChoice === 'true';
+    },
+    
+    /**
+     * Tells if a value is single and in the choice/option format.
+     * 
+     * <p>A single choice value comprises of a single object of format:</p>
+     * <code>{value: , text: }</code>
+     * 
+     * The value is the actual value while the text is for display
+     * 
+     * @param {object} value - The value to check if it is single choice object
+     * @returns {Boolean} true if single choice, otherwise false.
+     */
+    isValueSingleChoiceObject: function(value) {
+        return (formMemberUtil.hasValue(value) === true 
+                && formMemberUtil.hasValue(value.value) === true 
+                && formMemberUtil.hasValue(value.text) === true
+                && Object.keys(value).length === 2);
+    },
+    
     hasValue: function(arg) {
-        return arg !== null && arg !== undefined;
+        const hasValue = arg !== null && arg !== undefined && arg !== "";
+        return hasValue === true;
     },
     
     /**

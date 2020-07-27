@@ -7,8 +7,7 @@ import log from "./log";
 const referencedFormConfig = {
     
     isMultiChoice: function(props) {
-        const multiChoice = props.formMember.multiChoice;
-        return multiChoice === true || multiChoice === 'true';
+        return formMemberUtil.isMultiChoice(props.formMember);
     },
     
     getLink: function(props) {
@@ -26,6 +25,12 @@ const referencedFormConfig = {
                 formUtil.buildPath(apiBasePath, [props.action, props.formMember.name, query]);
         log.trace("ReferencedFormConfig#getLink: ", link);
         return link;
+    },
+    
+    formMemberHasValue: function(formMember) {
+        const value = formMember.value;
+        const hasValue = value !== null && value !== "" && value !== undefined;
+        return hasValue === true;
     },
     
     /**
@@ -48,18 +53,30 @@ const referencedFormConfig = {
         const hasLinkToRef = href !== undefined && href !== null;
         const refName = props.formMember.label;
         const multiChoice = referencedFormConfig.isMultiChoice(props);
+        
         const message = multiChoice === true ? 
                 "Select " + refName + " or " : props.formMember.required ?
                 refName + " is required. " : "";
-        const linkText = hasLinkToRef ? "Click here to add " + refName : "";
+                
+        const hasValue = referencedFormConfig.formMemberHasValue(props.formMember);
+        
+        let linkText;
+        if(hasLinkToRef === true) {
+            if(hasValue === true) {
+                linkText = "Click here to replace " + refName;
+            }else{
+                linkText = "Click here to add " + refName;
+            }
+        }else{
+            linkText = "";
+        }
+        
         const displayField = (hasLinkToRef === false || multiChoice === true);
-        const value = props.formMember.value;
-        const hasValue = value !== null && value !== "" && value !== undefined;
-        const displayLinkToRef = hasLinkToRef === true && 
-                (multiChoice === true || hasValue === false);
+        const displayLink = hasLinkToRef === true;
+//        const displayLink = hasLinkToRef === true && (multiChoice === true || hasValue === false);
         const config = {
             displayField: displayField,
-            displayLink: displayLinkToRef,
+            displayLink: displayLink,
             message: message,
             link: {href: href, text: linkText}
         };

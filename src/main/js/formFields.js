@@ -8,6 +8,7 @@ import log from "./log";
 
 const WebformInputClass = {
     FORM_INPUT: "form-input",
+    FORM_CHECKBOX: "form-checkbox",
     FORM_SELECT: "form-select",
     FORM_TEXTAREA: "form-textarea"
 };
@@ -126,7 +127,7 @@ class CheckBoxField extends React.Component{
      * by React via the defaultValue/value property
      */
     render() {
-        const className = WebformInputClass.FORM_INPUT;
+        const className = WebformInputClass.FORM_CHECKBOX;
         return (                
             <input className={className + ' ' + this.props.formMember.type} 
                 type={this.props.formMember.type}

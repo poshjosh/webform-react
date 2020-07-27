@@ -7,6 +7,7 @@ import {
     InputField, SelectField, CheckBoxField, FileField, TextAreaField
 } from "./formFields";
 import formUtil from "./formUtil";
+import formMemberUtil from "./formMemberUtil";
 import referencedFormConfig from "./referencedFormConfig";
 import log from "./log";
 
@@ -22,14 +23,17 @@ class FormRow extends React.Component{
     }
     
     isMultiChoice() {
-        const multiChoice = this.props.formMember.multiChoice;
-        return multiChoice === true || multiChoice === 'true';
+        return formMemberUtil.isMultiChoice(this.props.formMember);
+    }
+    
+    isSingleChoice() {
+        return formMemberUtil.isSingleChoice(this.props.value);
     }
     
     /**
      * FormMember.multiChoice is updated from <code>false</code> to <code>true</code>
      * after the multi-choice of a dependent formMember are newly loaded from 
-     * the API. This is the case for so-called dependent componetns. For example
+     * the API. This is the case for so-called dependent components. For example
      * Selecting a country provides a context for populating the region options.
      * We thus say the region option is dependent on the country option.
      * @returns {Boolean}
@@ -52,7 +56,7 @@ class FormRow extends React.Component{
         
         let formField;
         
-        if(this.isMultiChoice()) {
+        if(this.isSingleChoice() || this.isMultiChoice()) {
             formField = (<SelectField formid={this.props.form.id}
                                       formMember={this.props.formMember}
                                       value={this.props.value}
@@ -147,12 +151,12 @@ class FormRow extends React.Component{
                 {config.displayField === true && this.getFormField()}
                 
                 {config.displayLink && (
-                        <tt>{config.message}
+                        <div className="form-field-advice">{config.message}
                             <a href="#" target="_blank"
                                onClick={(e) => this.props.onBeginReferencedForm(e, config.link.href)}>
                                {config.link.text}
                              </a>
-                        </tt>
+                        </div>
                     )
                 }
             </div>    
