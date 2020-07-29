@@ -156,6 +156,8 @@ class FileField extends React.Component{
     }
     render() {
         const className = WebformInputClass.FORM_INPUT;
+// File input is alway an uncontrolled component in react -> So no value        
+//        value={formMemberUtil.getValue(this.props)}
         return (
             <input className={className + ' ' + this.props.formMember.type} 
                 type={this.isDisabled() ? 'text' : 'file'}
@@ -165,7 +167,6 @@ class FileField extends React.Component{
                 id={this.props.formMember.id}
                 ref={this.props.formMember.id}
                 name={this.props.formMember.name}
-                value={formMemberUtil.getValue(this.props)}
                 placeholder={this.props.formMember.label}
                 onChange={(e) => this.props.onChange(this.props.formMember, e)}
                 onClick={(e) => this.props.onClick(this.props.formMember, e)}

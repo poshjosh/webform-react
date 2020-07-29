@@ -96,6 +96,7 @@ const referencedFormConfig = {
         }else {
             config = baseConfig;
         }
+        log.trace("ReferencedFormConfig#getConfig formMember: ", props.formMember);
         log.trace("ReferencedFormConfig#getConfig output: ", config);
         return config;
     }

@@ -50,6 +50,7 @@ var log = {
                 console.info(pre + " " + arg); 
                 
                 return true;
+                
             }catch(err) { 
                 try{
                     console.error(pre + " " + err);

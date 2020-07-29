@@ -26,10 +26,6 @@ class FormRow extends React.Component{
         return formMemberUtil.isMultiChoice(this.props.formMember);
     }
     
-    isSingleChoice() {
-        return formMemberUtil.isSingleChoice(this.props.value);
-    }
-    
     /**
      * FormMember.multiChoice is updated from <code>false</code> to <code>true</code>
      * after the multi-choice of a dependent formMember are newly loaded from 
@@ -56,7 +52,7 @@ class FormRow extends React.Component{
         
         let formField;
         
-        if(this.isSingleChoice() || this.isMultiChoice()) {
+        if(this.isMultiChoice()) {
             formField = (<SelectField formid={this.props.form.id}
                                       formMember={this.props.formMember}
                                       value={this.props.value}
@@ -136,6 +132,8 @@ class FormRow extends React.Component{
                 }    
         );
 
+        const separator = this.props.formMember.type === 'checkbox' ? "" : <br/>;
+        
         log.trace("FormRow#render has errors: " + hasErrors + ", errors: ", errorHtm);
 
         return (
@@ -146,11 +144,11 @@ class FormRow extends React.Component{
                 
                 <FieldHeading formMember={this.props.formMember}/>
 
-                {(this.props.formMember.type === 'checkbox') && (' ') || (<br/>)}
+                {separator}
 
                 {config.displayField === true && this.getFormField()}
                 
-                {config.displayLink && (
+                {config.displayLink === true && (
                         <div className="form-field-advice">{config.message}
                             <a href="#" target="_blank"
                                onClick={(e) => this.props.onBeginReferencedForm(e, config.link.href)}>

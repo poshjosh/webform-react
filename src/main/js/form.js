@@ -52,6 +52,8 @@ import log from "./log";
  *      };
  * </pre></code>
  * 
+ * @param {number} - initialLoadTimeout - (optional)
+ * @param {string} - messageToDisplayOnTimeout - (optional)
  * @param {boolean} logLevel - (optional) Any of: [error|warn|info|debug|trace]
  * @param {function} getReferencedFormConfig - (optional)
  * @param {function} getReferencedFormMessage -(optional)
@@ -96,9 +98,22 @@ class Form extends React.Component {
         this.onClick = this.onClick.bind(this);
         this.onBlur = this.onBlur.bind(this);
         this.onSubmit = this.onSubmit.bind(this);
+        
         this.onBeginReferencedForm = this.onBeginReferencedForm.bind(this);
+        this.onError = this.onError.bind(this);
+        this.onSuccessInitialLoad = this.onSuccessInitialLoad.bind(this);
+        this.onSuccessSubmit = this.onSuccessSubmit.bind(this);
+        this.onReloadAfterReturningFromReferencedForm = this.onReloadAfterReturningFromReferencedForm.bind(this);
+        
+        this.updateFormConfig = this.updateFormConfig.bind(this);
+        this.displayMessagesFromResponse = this.displayMessagesFromResponse.bind(this);
+        this.updateStates = this.updateStates.bind(this);
 
         this.messagesTitleRef = React.createRef();
+        
+        this.initialLoadTimeout = props.initialLoadTimeout ? props.initialLoadTimeout : 5000;
+        this.initialLoadTimer = null;
+        this.setInitialLoadDataTimedout = this.setInitialLoadDataTimedout.bind(this);
     }
     
     // pendingFormConfig is used to offload the current formConfig if we have
@@ -108,6 +123,7 @@ class Form extends React.Component {
     getInitialState() {
         return {
             doneInitialLoadData: false,
+            initialLoadDataTimedout: false,
             context: {stage: webformStage.BEGIN},
             formConfig: null,
             pendingFormConfig: null,
@@ -117,8 +133,8 @@ class Form extends React.Component {
     }
     
     /**
-     * @param {target} update The new state
-     * @param {boolean} replace if state values should be entirely replaced or updated
+     * @param {object} update - The new state
+     * @param {boolean} replace - Should state values be entirely replaced or updated
      * @returns {undefined}
      */
     updateStates(update, replace = false) {
@@ -144,30 +160,36 @@ class Form extends React.Component {
         this.updateStates({ formConfig: update });
     }
     
-    onError(response, path) {
+    onError(response, path, stateUpdate) {
         formUtil.logResponse(response, "Form#onError");
-        this.printMessages(response);
+        this.displayMessagesFromResponse(response);
+    }
+
+    displayMessages(errors = [], infos = []) {
+        const messages = { errors: null, infos: null };
+        var hasMessages = false;
+        if(errors && errors.length > 0) {
+            hasMessages = true;
+            log.debug("Errors: ", errors); 
+            messages.errors = errors;
+        }
+        if(infos && infos.length > 0) {
+            hasMessages = true;
+            log.trace("Infos: ", infos);
+            messages.infos = infos;
+        }
+        if(hasMessages === true) {
+            this.updateStates( {messages: messages}, true );
+        }
     }
     
-    printMessages(response) {
-        // Sample format of both errors & messages
+    displayMessagesFromResponse(response) {
+
         const errors = response.entity.errors;
 
         const infos = response.entity.infos;
         
-        const messages = { errors: null, infos: null };
-        if(errors) {
-            log.debug("Errors: ", errors); 
-            messages.errors = errors;
-        }
-        if(infos) {
-            log.trace("Infos: ", infos);
-            messages.infos = infos;
-        }
-        
-        if(messages !== null && messages !== undefined) {
-            this.updateStates( {messages: messages}, true );
-        }
+        this.displayMessages(errors, infos);
     }
     
     getRefreshedState(formConfig, formValues, messages) {
@@ -185,7 +207,7 @@ class Form extends React.Component {
         
         return result;
     }
-    
+
     onSuccessInitialLoad(response, path, messages) {
         formUtil.logResponse(response, "Form#onSuccessInitialLoad");
         
@@ -215,6 +237,7 @@ class Form extends React.Component {
         if( ! onError) {
             onError = (response) => this.onError(response, path);
         }
+        
         const clientConfig = { method: 'GET', path: path };
         
         log.debug("Form#getRequest, submitting: " + clientConfig.path);
@@ -227,12 +250,24 @@ class Form extends React.Component {
             onError(response);
         });
     }
+    
+    setInitialLoadDataTimedout() {
+        if(this.state.doneInitialLoadData !== true) {
+            this.updateStates({initialLoadDataTimedout: true});
+        }
+    }
 
     loadInitialData(path, messagesOnSuccess) {
+        
         log.trace("Form#loadInitialData. GET ", path);
-        this.getRequest(path,
-            (response) => this.onSuccessInitialLoad(response, path, messagesOnSuccess),
-            (response) => this.onError(response, path));
+        
+        const onSuccess = (response) => this.onSuccessInitialLoad(response, path, messagesOnSuccess);
+
+        const onError = (response) => this.onError(response, path, {doneInitialLoadData: true});
+        
+        this.getRequest(path, onSuccess, onError);
+            
+        this.initialLoadTimer = setTimeout(this.setInitialLoadDataTimedout, this.initialLoadTimeout);
     }
     
     buildDefaultPath(formConfig = this.state.formConfig) {
@@ -269,11 +304,24 @@ class Form extends React.Component {
         }
     }
     
+    componentWillUnmount() {
+        if(this.initialLoadTimer !== null) {
+            clearTimeout(this.initialLoadTimer);
+        }
+    }
 
     getEventTargetValue(event, formMember) {
         const eventTarget = event.target;
-        return formMember.type === 'checkbox' || formMember.type === 'radio' ? 
-                eventTarget.checked : eventTarget.value;
+        const type = formMember.type;
+        let result;
+        if(type === 'checkbox' || type === 'radio') {
+            result = eventTarget.checked;
+        }else if(type === 'file') {
+            result = eventTarget.files[0];
+        }else{
+            result = eventTarget.value;
+        }
+        return result;
     }
 
     handleEvent(event, eventName, formMember) {
@@ -335,7 +383,7 @@ class Form extends React.Component {
                 
             }else{
     
-                this.printMessages(response);
+                this.displayMessagesFromResponse(response);
             }
             
         }, response => {
@@ -376,14 +424,14 @@ class Form extends React.Component {
     }
 
     onChange(formMember, event) {
-        log.trace("Form#onChange: ", event.target.value)
+        log.trace("Form#onChange: ", event.target.value);
         if(this.isEventAccepted(event, formMember)) {
             this.handleEvent(event, "onChange", formMember);
         }
     }
     
     onClick(formMember, event) {
-        log.trace("Form#onClick: ", event.target.value)
+        log.trace("Form#onClick: ", event.target.value);
         if(this.isEventAccepted(event, formMember)) {
             const value = this.getEventTargetValue(event, formMember);
             if(value !== null && value !== "" && value !== undefined) {
@@ -393,7 +441,7 @@ class Form extends React.Component {
     }
     
     onBlur(formMember, event) {
-        log.trace("Form#onBlur: ", event.target.value)
+        log.trace("Form#onBlur: ", event.target.value);
         if(this.props.asyncvalidation === true || this.props.asyncvalidation === 'true') {
             if(this.isEventAccepted(event, formMember)) {
                 this.handleEvent(event, "onBlur", formMember);
@@ -416,7 +464,7 @@ class Form extends React.Component {
         if( ! msg) {
             msg = "Success";
         }
-        return { errors: null, infos: {"0": msg} };
+        return { errors: null, infos: [{"message": msg}]};
     }
     
     isApiPath(path) {
@@ -437,6 +485,43 @@ class Form extends React.Component {
                     result + ", lhs: " + path + ", rhs: " + rhs);
         }
         return result;
+    }
+    
+    onReloadAfterReturningFromReferencedForm(response) {
+
+        const formConfig = response.entity;
+        log.trace("Form#onReloadAfterReferencedForm Response.entity: ", formConfig);
+
+        const pendingFormConfig = this.state.pendingFormConfig;
+        
+        // Add the newly created entity to the formConfig
+        const updatedFormMember = formMemberUtil.addNewlyCreated(response, pendingFormConfig);
+        log.trace("Form#onReloadAfterReferencedForm updatedFormMember: ", updatedFormMember);
+        
+        // for collecting initial form values
+        var formValues = formUtil.collectFormData(formConfig);
+
+        formValues = formUtil.collectFormData(pendingFormConfig, formValues);
+        if(updatedFormMember !== null && updatedFormMember !== undefined) {
+            formValues[updatedFormMember.name] = updatedFormMember.value;
+            log.trace(() => "Form#onReloadAfterReturningFromReferencedForm Updated form value: " + 
+                    updatedFormMember.name + " = " + updatedFormMember.value);
+        }
+        log.trace("Form#onReloadAfterReferencedForm form values: ", formValues);
+
+        const stateUpdate = this.getRefreshedState(
+                {}, formValues, this.getSuccessMessage());
+
+        stateUpdate.formConfig = formConfig;
+        stateUpdate.pendingFormConfig = null;
+
+        log.trace("Form#onReloadAfterReferencedForm stateUpdate: ", stateUpdate);
+        
+        // This kind of transition requires replacing the entire
+        // FormConfig with the update.
+        //
+        const replaceEntirely = true;
+        this.updateStates(stateUpdate, replaceEntirely);
     }
     
     onSuccessSubmit(response, requestedPath) {
@@ -473,6 +558,8 @@ class Form extends React.Component {
                         log.debug("Form#onSuccessSubmit Relocating to: " + targetOnCompletion);
 
                         window.location = targetOnCompletion;
+                        
+                        this.displayMessages([], this.getSuccessMessage("Success, continue").infos);
                     }
                 }else{
                     
@@ -498,9 +585,6 @@ class Form extends React.Component {
                         
                     }else{    
 
-                        // Add the newly created entity to the formConfig
-                        const updatedFormMember = formMemberUtil.addNewlyCreated(response, pendingFormConfig);
-                        
                         // This contains web page path: /webform/create/post?fid=form172d4d3fa82
                         // However, we want api path: /api/webform/create/post?fid=form172d4d3fa82
                         // So we do some formatting
@@ -509,36 +593,7 @@ class Form extends React.Component {
                         const base = this.buildDefaultPath(pendingFormConfig);
                         const path = base + '?fid=' + pendingFormConfig.fid;
 
-                        const onSuccess = (response) => {
-
-                            const formConfig = response.entity;
-
-                            // for collecting initial form values
-                            var formValues = formUtil.collectFormData(formConfig);
-
-                            formValues = formUtil.collectFormData(pendingFormConfig, formValues);
-                            if(updatedFormMember !== null && updatedFormMember !== undefined) {
-                                formValues[updatedFormMember.name] = updatedFormMember.value;
-                                log.trace(() => "Updated form value: " + 
-                                        updatedFormMember.name + " = " + updatedFormMember.value);
-                            }
-
-                            log.trace("Form#onSuccessSubmit form values: ", formValues);
-
-                            const stateUpdate = this.getRefreshedState(
-                                    {}, formValues, this.getSuccessMessage());
-
-                            stateUpdate.formConfig = formConfig;
-                            stateUpdate.pendingFormConfig = null;
-
-                            // This kind of transition requires replacing the entire
-                            // FormConfig with the update.
-                            //
-                            const replaceEntirely = true;
-                            this.updateStates(stateUpdate, replaceEntirely);
-                        };
-
-                        this.getRequest(path, onSuccess);
+                        this.getRequest(path, this.onReloadAfterReturningFromReferencedForm);
                     }
                 }
             }            
@@ -632,9 +687,18 @@ class Form extends React.Component {
         let htm;
         
         if(this.state.doneInitialLoadData === false) {
+        
+            let loading;
             
-            const loading = this.props.messageToDisplayWhileLoading ? 
-                    this.props.messageToDisplayWhileLoading : "..loading";
+            if(this.state.initialLoadDataTimedout === true) {
+                loading = this.props.messageToDisplayOnTimeout ? 
+                        this.props.messageToDisplayOnTimeout : 
+                        "..Response from server is taking too long. Please try refreshing.";
+            }else{
+                loading = this.props.messageToDisplayWhileLoading ? 
+                        this.props.messageToDisplayWhileLoading : "..loading";
+            }
+            
             htm = <div>{loading}</div>;
             
         }else if(form === null || form === undefined) {
@@ -769,7 +833,7 @@ class FormRows extends React.Component{
     }
     
     /**
-     * @param {string} The path to append the current location to
+     * @param {string} path - The path to append the current location to
      * @returns {string} The updated path
      * @deprecated Users should provide any query they intend to add (to the 
      * path this Form component will submit to the api) via the search property. 

@@ -134,7 +134,17 @@ const formMemberUtil = {
     },
 
     getValue: function(props, resultIfNone = "") {
-        return formMemberUtil.hasValue(props.value) ? props.value : resultIfNone;
+        let result;
+        if(formMemberUtil.hasValue(props.value)) {
+            if(formMemberUtil.isValueSingleChoiceObject(props.value)) {
+                result = props.value.value; // The value of the value
+            }else{
+                result = props.value;
+            }
+        }else{
+            result = resultIfNone;
+        }
+        return  result;
     },
 
     getSize: function(props, resultIfNone = 35) {
