@@ -41,7 +41,7 @@
     "babel-loader": "^8.0.2",
     "mocha": "^7.0.0",
     "webpack": "^4.19.1",
-    "webpack-cli": "^3.1.0",
+    "webpack-cli": "^3.3.12",
     "webpack-merge": "^4.2.2"
   }
 }
